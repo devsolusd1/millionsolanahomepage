@@ -1222,6 +1222,133 @@ export default function PixelCanvas() {
             </div>
           )}
         </div>
+
+        {/* right-side guide */}
+        <aside
+          style={{
+            width: 280,
+            flexShrink: 0,
+            padding: 18,
+            background: "#fafafa",
+            borderLeft: "1px solid #e3e3e3",
+            overflowY: "auto",
+            fontSize: 13,
+            lineHeight: 1.6,
+            color: "#333",
+          }}
+        >
+          <div
+            style={{
+              fontFamily: "var(--font-pixel)",
+              fontSize: 13,
+              backgroundImage: "linear-gradient(90deg, #9945FF, #14F195)",
+              WebkitBackgroundClip: "text",
+              backgroundClip: "text",
+              color: "transparent",
+              marginBottom: 14,
+            }}
+          >
+            How it works
+          </div>
+
+          {[
+            {
+              n: "1",
+              t: "Connect your wallet",
+              d: "Use the Connect button (top-right). You need $PIXEL tokens in a Solana wallet (Phantom/Solflare).",
+            },
+            {
+              n: "2",
+              t: "Select a region",
+              d: `With the ⬚ Select tool, drag a rectangle — or click two opposite corners. Max ${MAX_CLAIM_SIZE}×${MAX_CLAIM_SIZE}px. You can't overlap an area someone already claimed.`,
+            },
+            {
+              n: "3",
+              t: "Make your art",
+              d: "Draw inside your region with the tools below, or upload/paste an image. Pick a color and brush size.",
+            },
+            {
+              n: "4",
+              t: "Add your name + link",
+              d: "Your name is required. A website link is optional (check the box to skip it).",
+            },
+            {
+              n: "5",
+              t: "Burn & Place",
+              d: `Burning costs ${TOKENS_PER_PIXEL} $PIXEL per pixel of the whole selected region. The tokens are destroyed and your art is eternalized on-chain — forever, uneditable.`,
+            },
+          ].map((s) => (
+            <div key={s.n} style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+              <div
+                style={{
+                  flexShrink: 0,
+                  width: 22,
+                  height: 22,
+                  borderRadius: "50%",
+                  background: "#5b3bff",
+                  color: "#fff",
+                  fontWeight: 700,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 12,
+                }}
+              >
+                {s.n}
+              </div>
+              <div>
+                <strong>{s.t}</strong>
+                <div style={{ color: "#666" }}>{s.d}</div>
+              </div>
+            </div>
+          ))}
+
+          <div style={{ fontWeight: 700, margin: "18px 0 8px" }}>Tools</div>
+          {[
+            ["⬚", "Select", "Claim a rectangular region (drag or two clicks)."],
+            ["✎", "Draw", "Free-draw pixel by pixel with the chosen color/brush."],
+            ["╱", "Line", "Straight line between two points."],
+            ["▭", "Rectangle", "Outline or filled box (toggle “Fill shape”)."],
+            ["◯", "Circle", "Outline or filled ellipse."],
+            ["⌫", "Erase", "Remove pending pixels before burning."],
+            ["✋", "Pan", "Move around the board (or hold Shift + drag)."],
+          ].map(([icon, name, desc]) => (
+            <div key={name} style={{ display: "flex", gap: 9, marginBottom: 8 }}>
+              <span style={{ width: 18, textAlign: "center", flexShrink: 0 }}>{icon}</span>
+              <div>
+                <strong>{name}</strong>
+                <div style={{ color: "#666" }}>{desc}</div>
+              </div>
+            </div>
+          ))}
+
+          <div
+            style={{
+              marginTop: 14,
+              padding: "10px 12px",
+              borderRadius: 8,
+              background: "#0b0b12",
+              color: "#fff",
+              fontSize: 12,
+            }}
+          >
+            <strong style={{ color: "#14F195" }}>⛓ Eternalized on-chain.</strong>{" "}
+            Every drawing is a real Solana burn tx. Hover any art to see its tx and
+            open it on Solscan.
+          </div>
+
+          <Link
+            href="/docs"
+            style={{
+              display: "inline-block",
+              marginTop: 14,
+              color: "#9945FF",
+              fontWeight: 600,
+            }}
+          >
+            Full docs →
+          </Link>
+        </aside>
       </div>
 
       <footer
