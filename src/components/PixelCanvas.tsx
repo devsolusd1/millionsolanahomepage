@@ -433,7 +433,7 @@ export default function PixelCanvas() {
     setTool("draw");
     const area = rect.w * rect.h;
     setStatus(
-      `Region claimed: ${rect.w}×${rect.h} = ${area} px · costs ${area * TOKENS_PER_PIXEL} $SOLANAHP.`,
+      `Region claimed: ${rect.w}×${rect.h} = ${area} px · costs ${area * TOKENS_PER_PIXEL} $PIXEL.`,
     );
   };
 
@@ -717,7 +717,7 @@ export default function PixelCanvas() {
         region: { x: claim.x, y: claim.y, w: claim.w, h: claim.h },
       });
 
-      setStatus(`Burning ${cost} $SOLANAHP for your ${claim.w}×${claim.h} region...`);
+      setStatus(`Burning ${cost} $PIXEL for your ${claim.w}×${claim.h} region...`);
       // Burn covers the whole selected area, not just what you drew.
       const signature = await burnForPixels(
         connection,
@@ -838,7 +838,7 @@ export default function PixelCanvas() {
             whiteSpace: "nowrap",
           }}
         >
-          1 PX = {TOKENS_PER_PIXEL} $SOLANAHP
+          1 PX = {TOKENS_PER_PIXEL} $PIXEL
         </span>
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>
           <TokenAddress />
@@ -1065,7 +1065,7 @@ export default function PixelCanvas() {
               <br />
               Drawn: <strong>{drawnCount}</strong> px
               <br />
-              Cost: <strong>{cost}</strong> $SOLANAHP <span style={{ opacity: 0.6 }}>(whole region)</span>
+              Cost: <strong>{cost}</strong> $PIXEL <span style={{ opacity: 0.6 }}>(whole region)</span>
             </div>
             <button
               onClick={() => setPending(new Map())}
@@ -1246,7 +1246,7 @@ export default function PixelCanvas() {
           How it works / Docs
         </Link>
         <span style={{ marginLeft: "auto", opacity: 0.7 }}>
-          Burn $SOLANAHP to own pixels forever.
+          Burn $PIXEL to own pixels forever.
         </span>
       </footer>
     </div>

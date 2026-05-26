@@ -90,13 +90,13 @@ export default function DocsPage() {
           The Million Solana Homepage is a shared{" "}
           {CANVAS_WIDTH.toLocaleString()}×{CANVAS_HEIGHT.toLocaleString()} pixel
           canvas on Solana. You permanently claim pixels by{" "}
-          <strong>burning $SOLANAHP tokens</strong> — once a pixel is painted, it is
+          <strong>burning $PIXEL tokens</strong> — once a pixel is painted, it is
           yours forever and can never be overwritten.
         </p>
 
-        <Section title="The $SOLANAHP token">
+        <Section title="The $PIXEL token">
           <p>
-            $SOLANAHP is an SPL token on Solana. The only thing it does is buy you
+            $PIXEL is an SPL token on Solana. The only thing it does is buy you
             space on the canvas. There is no admin who can edit your pixels and no
             way to &ldquo;unburn&rdquo; — every pixel placed is final. The total
             supply is sized so the entire board can be filled exactly once:
@@ -104,7 +104,7 @@ export default function DocsPage() {
           <ul style={{ marginTop: 10, paddingLeft: 22 }}>
             <li>
               {totalPixels.toLocaleString()} pixels × {TOKENS_PER_PIXEL} tokens ={" "}
-              <strong>{capacity.toLocaleString()} $SOLANAHP</strong> total burn
+              <strong>{capacity.toLocaleString()} $PIXEL</strong> total burn
               capacity.
             </li>
           </ul>
@@ -112,7 +112,7 @@ export default function DocsPage() {
 
         <Section title="The price: 1 pixel = 10 tokens">
           <p>
-            Every pixel you paint costs <strong>{TOKENS_PER_PIXEL} $SOLANAHP</strong>,
+            Every pixel you paint costs <strong>{TOKENS_PER_PIXEL} $PIXEL</strong>,
             which are <em>burned</em> (destroyed) the moment you place your art.
             If you draw 50 pixels, {50 * TOKENS_PER_PIXEL} tokens leave circulation
             forever. This makes the canvas a permanent, deflationary record of who
@@ -146,7 +146,7 @@ export default function DocsPage() {
         <Section title="Step 3 — Burn &amp; place">
           <p>
             When you&rsquo;re happy, hit <strong>Burn &amp; Place</strong>. Your
-            wallet signs a single transaction that burns the right amount of $SOLANAHP.
+            wallet signs a single transaction that burns the right amount of $PIXEL.
             The site verifies the burn on-chain (correct token, correct amount,
             signed by you, never reused) and only then writes your pixels to the
             board. If the burn doesn&rsquo;t check out, nothing is placed.
