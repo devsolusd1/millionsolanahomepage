@@ -432,10 +432,9 @@ export default function PixelCanvas() {
     }
     setClaim(rect);
     setPending(new Map());
-    setTool("draw");
     const area = rect.w * rect.h;
     setStatus(
-      `Region claimed: ${rect.w}×${rect.h} = ${area} px · costs ${area * TOKENS_PER_PIXEL} $PIXEL.`,
+      `Region claimed: ${rect.w}×${rect.h} = ${area} px · costs ${area * TOKENS_PER_PIXEL} $PIXEL. Pick a tool (Draw/Line/…) to paint inside it.`,
     );
   };
 
