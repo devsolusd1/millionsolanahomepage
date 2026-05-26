@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Brand from "@/components/Brand";
-import { explorerTxUrl } from "@/lib/config";
+import { explorerTxUrl, explorerAddressUrl } from "@/lib/config";
 
 type Pixel = { x: number; y: number; color: string };
 type Bbox = { minX: number; minY: number; maxX: number; maxY: number };
@@ -141,9 +141,17 @@ export default function GalleryPage() {
                   {p.creator || "Anonymous"}
                 </div>
                 <div style={{ color: "#666" }}>
-                  {p.pixelsClaimed.toLocaleString()} px · {short(p.owner)} ·{" "}
+                  {p.pixelsClaimed.toLocaleString()} px ·{" "}
                   {new Date(p.createdAt).toLocaleString()}
                 </div>
+                <a
+                  href={explorerAddressUrl(p.owner)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: "#1280d6" }}
+                >
+                  wallet: {short(p.owner)} ↗
+                </a>
                 <a
                   href={explorerTxUrl(p.sig)}
                   target="_blank"

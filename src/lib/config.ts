@@ -47,3 +47,10 @@ export function explorerTxUrl(signature: string): string {
     SOLANA_CLUSTER === "mainnet-beta" ? "" : `?cluster=${SOLANA_CLUSTER}`;
   return `https://solscan.io/tx/${signature}${suffix}`;
 }
+
+// Solscan link for a wallet address (cluster-aware).
+export function explorerAddressUrl(address: string): string {
+  const suffix =
+    SOLANA_CLUSTER === "mainnet-beta" ? "" : `?cluster=${SOLANA_CLUSTER}`;
+  return `https://solscan.io/account/${address}${suffix}`;
+}

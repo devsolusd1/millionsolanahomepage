@@ -60,6 +60,14 @@ export async function verifyBurn(signature: string): Promise<VerifiedBurn> {
     const m = readMemo(ix);
     if (m !== null) memo = m;
   }
+  // Fallback: some RPCs don't expose the memo as a parsed instruction, but the
+  // memo program logs it. Logs look like: Program log: Memo (len N): "..."
+  if (!memo && tx.meta?.logMessages) {
+    for (const line of tx.meta.logMessages) {
+      const match = line.match(/Memo \(len \d+\): "(.*)"$/);
+      if (match) memo = match[1];
+    }
+  }
 
   for (const ix of instructions) {
     if (!isParsed(ix)) continue;

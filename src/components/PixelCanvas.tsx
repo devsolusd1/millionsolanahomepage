@@ -19,6 +19,7 @@ import {
   TOKEN_MINT,
   MAX_CLAIM_SIZE,
   explorerTxUrl,
+  explorerAddressUrl,
 } from "@/lib/config";
 
 type Region = {
@@ -73,6 +74,8 @@ export default function PixelCanvas() {
   const [claim, setClaim] = useState<Rect | null>(null);
   const selectingRef = useRef<Rect | null>(null);
   const anchorRef = useRef<{ x: number; y: number } | null>(null);
+  // First corner for two-click selection (click once, then click again).
+  const firstCornerRef = useRef<Pt | null>(null);
 
   // Image-stamp state.
   const stampRef = useRef<{ w: number; h: number; colors: (string | null)[] } | null>(null);
@@ -253,6 +256,14 @@ export default function PixelCanvas() {
     return () => window.removeEventListener("resize", onResize);
   }, [draw]);
 
+  // Reset any in-progress two-click selection when leaving the Select tool.
+  useEffect(() => {
+    if (tool !== "select") {
+      firstCornerRef.current = null;
+      selectingRef.current = null;
+    }
+  }, [tool]);
+
   // ---- coordinate helpers ----
   const toPixel = useCallback(
     (clientX: number, clientY: number) => {
@@ -392,6 +403,40 @@ export default function PixelCanvas() {
 
   const isShapeTool = tool === "line" || tool === "rect" || tool === "ellipse";
 
+  // Build a claim rect from two corners, clamped to the board + max claim size.
+  const rectFromCorners = (a: Pt, b: Pt): Rect => {
+    let bx = clamp(b.x, 0, CANVAS_WIDTH - 1);
+    let by = clamp(b.y, 0, CANVAS_HEIGHT - 1);
+    bx = clamp(bx, a.x - (MAX_CLAIM_SIZE - 1), a.x + (MAX_CLAIM_SIZE - 1));
+    by = clamp(by, a.y - (MAX_CLAIM_SIZE - 1), a.y + (MAX_CLAIM_SIZE - 1));
+    return {
+      x: Math.min(a.x, bx),
+      y: Math.min(a.y, by),
+      w: Math.abs(bx - a.x) + 1,
+      h: Math.abs(by - a.y) + 1,
+    };
+  };
+
+  // Finalize a selection rect into a claim (rejecting overlaps).
+  const tryClaimRect = (rect: Rect) => {
+    selectingRef.current = null;
+    anchorRef.current = null;
+    firstCornerRef.current = null;
+    dragging.current = false;
+    if (regionsRef.current.some((r) => rectsOverlap(rect, r))) {
+      setStatus("That area overlaps a region someone already claimed. Pick empty space.");
+      draw();
+      return;
+    }
+    setClaim(rect);
+    setPending(new Map());
+    setTool("draw");
+    const area = rect.w * rect.h;
+    setStatus(
+      `Region claimed: ${rect.w}×${rect.h} = ${area} px · costs ${area * TOKENS_PER_PIXEL} $SOLANAHP.`,
+    );
+  };
+
   // ---- pointer interaction ----
   const dragging = useRef(false);
   const panning = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
@@ -445,19 +490,15 @@ export default function PixelCanvas() {
     }
 
     if (tool === "select" && dragging.current && anchorRef.current) {
-      const a = anchorRef.current;
-      const { x, y } = toPixel(e.clientX, e.clientY);
-      // Clamp to board, then cap the extent from the anchor to MAX_CLAIM_SIZE.
-      let cx = clamp(x, 0, CANVAS_WIDTH - 1);
-      let cy = clamp(y, 0, CANVAS_HEIGHT - 1);
-      cx = clamp(cx, a.x - (MAX_CLAIM_SIZE - 1), a.x + (MAX_CLAIM_SIZE - 1));
-      cy = clamp(cy, a.y - (MAX_CLAIM_SIZE - 1), a.y + (MAX_CLAIM_SIZE - 1));
-      selectingRef.current = {
-        x: Math.min(a.x, cx),
-        y: Math.min(a.y, cy),
-        w: Math.abs(cx - a.x) + 1,
-        h: Math.abs(cy - a.y) + 1,
-      };
+      // Click-and-hold drag selection.
+      selectingRef.current = rectFromCorners(anchorRef.current, toPixel(e.clientX, e.clientY));
+      draw();
+      return;
+    }
+
+    if (tool === "select" && !dragging.current && firstCornerRef.current) {
+      // Two-click selection: preview from the first corner to the cursor.
+      selectingRef.current = rectFromCorners(firstCornerRef.current, toPixel(e.clientX, e.clientY));
       draw();
       return;
     }
@@ -505,21 +546,22 @@ export default function PixelCanvas() {
   };
 
   const onPointerUp = (e: React.PointerEvent) => {
-    // A click (no real drag) on a painted area: open its link if set,
-    // otherwise open the burn transaction on the Solana Explorer.
     const down = downPosRef.current;
     downPosRef.current = null;
-    if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 5) {
+    const isClick = !!down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 5;
+    (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
+
+    // A click (no real drag) on a painted area opens its link or burn tx.
+    if (isClick) {
       const { x, y } = toPixel(e.clientX, e.clientY);
       const info = regionAt(x, y);
       if (info) {
-        // cancel any in-progress selection/draw started by this click
         selectingRef.current = null;
         anchorRef.current = null;
+        firstCornerRef.current = null;
         shapeAnchorRef.current = null;
         shapePixelsRef.current = null;
         dragging.current = false;
-        (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
         const target = info.link ?? (info.sig ? explorerTxUrl(info.sig) : null);
         if (target) window.open(target, "_blank", "noopener,noreferrer");
         draw();
@@ -527,24 +569,26 @@ export default function PixelCanvas() {
       }
     }
 
-    if (tool === "select" && selectingRef.current) {
-      const sel = selectingRef.current;
-      selectingRef.current = null;
-      anchorRef.current = null;
-      dragging.current = false;
-      (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
-      if (regionsRef.current.some((r) => rectsOverlap(sel, r))) {
-        setStatus("That area overlaps a region someone already claimed. Pick empty space.");
+    if (tool === "select") {
+      const cursor = toPixel(e.clientX, e.clientY);
+      // Click-and-hold: a real drag finalizes the region immediately.
+      if (!isClick && selectingRef.current) {
+        tryClaimRect(selectingRef.current);
+        return;
+      }
+      // Two-click: first click sets a corner, second click finishes the rect.
+      if (!firstCornerRef.current) {
+        const ax = clamp(cursor.x, 0, CANVAS_WIDTH - 1);
+        const ay = clamp(cursor.y, 0, CANVAS_HEIGHT - 1);
+        firstCornerRef.current = { x: ax, y: ay };
+        selectingRef.current = { x: ax, y: ay, w: 1, h: 1 };
+        anchorRef.current = null;
+        dragging.current = false;
+        setStatus("First corner set — click the opposite corner (or drag) to finish.");
         draw();
         return;
       }
-      setClaim(sel);
-      setPending(new Map());
-      setTool("draw");
-      const area = sel.w * sel.h;
-      setStatus(
-        `Region claimed: ${sel.w}×${sel.h} = ${area} px · costs ${area * TOKENS_PER_PIXEL} $SOLANAHP.`,
-      );
+      tryClaimRect(rectFromCorners(firstCornerRef.current, cursor));
       return;
     }
     if (isShapeTool && shapePixelsRef.current) {
@@ -730,6 +774,8 @@ export default function PixelCanvas() {
     setPending(new Map());
     setTool("select");
     setStatus("");
+    firstCornerRef.current = null;
+    selectingRef.current = null;
   };
 
   // Frame the whole board, centered in the viewport.
@@ -826,8 +872,8 @@ export default function PixelCanvas() {
                 lineHeight: 1.5,
               }}
             >
-              <strong>Step 1.</strong> Use <em>Select</em> and drag on the canvas
-              to claim a region (max {MAX_CLAIM_SIZE}×{MAX_CLAIM_SIZE} per wallet).
+              <strong>Step 1.</strong> Use <em>Select</em> to claim a region — drag,
+              or click two opposite corners (max {MAX_CLAIM_SIZE}×{MAX_CLAIM_SIZE}).
               You can only draw inside your claimed region.
             </div>
           )}
@@ -1161,6 +1207,16 @@ export default function PixelCanvas() {
                   style={{ display: "block", color: "#c9b3ff", textDecoration: "underline" }}
                 >
                   burn tx: {short(tooltip.info.sig)} ↗
+                </a>
+              )}
+              {tooltip.info.owner && (
+                <a
+                  href={explorerAddressUrl(tooltip.info.owner)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ display: "block", color: "#9fb6ff", textDecoration: "underline" }}
+                >
+                  wallet: {short(tooltip.info.owner)} ↗
                 </a>
               )}
             </div>
