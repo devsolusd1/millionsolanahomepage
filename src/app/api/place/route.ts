@@ -189,7 +189,8 @@ export async function POST(req: NextRequest) {
         data: {
           signature,
           wallet,
-          amount: verified.amount,
+          // Stored in whole tokens (not base units) to stay within an Int.
+          amount: area * TOKENS_PER_PIXEL,
           rx: region.x,
           ry: region.y,
           rw: region.w,
