@@ -11,7 +11,6 @@ import Link from "next/link";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import Brand from "@/components/Brand";
-import TokenAddress from "@/components/TokenAddress";
 import {
   CANVAS_WIDTH,
   CANVAS_HEIGHT,
@@ -853,7 +852,6 @@ export default function PixelCanvas() {
           1 PX = {TOKENS_PER_PIXEL} $PIXEL
         </span>
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>
-          <TokenAddress />
           <WalletMultiButton />
         </div>
       </header>
