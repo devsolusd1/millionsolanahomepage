@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && prisma db push --accept-data-loss && next build",
     "start": "next start",
     "lint": "eslint",
+    "postinstall": "prisma generate",
     "create-token": "tsx scripts/create-token.ts",
     "send-tokens": "tsx scripts/send-tokens.ts"
   },
