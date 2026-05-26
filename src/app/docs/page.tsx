@@ -53,10 +53,18 @@ export default function DocsPage() {
         }}
       >
         <Brand size={15} />
+        <a
+          href="https://x.com/MillionSolHP"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ marginLeft: "auto", color: "#1a1a1a", fontWeight: 600, fontSize: 14 }}
+        >
+          𝕏 @MillionSolHP
+        </a>
         <Link
           href="/"
           style={{
-            marginLeft: "auto",
+            marginLeft: 18,
             color: PURPLE,
             fontWeight: 600,
             fontSize: 14,
