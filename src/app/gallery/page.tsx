@@ -76,7 +76,7 @@ export default function GalleryPage() {
   }, []);
 
   return (
-    <div style={{ minHeight: "100dvh", overflowY: "auto", background: "#fff" }}>
+    <div style={{ height: "100dvh", overflowY: "auto", background: "#fff" }}>
       <header
         style={{
           display: "flex",

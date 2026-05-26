@@ -42,7 +42,7 @@ export default function DocsPage() {
   const capacity = totalPixels * TOKENS_PER_PIXEL;
 
   return (
-    <div style={{ minHeight: "100dvh", overflowY: "auto", background: "#fff" }}>
+    <div style={{ height: "100dvh", overflowY: "auto", background: "#fff" }}>
       <header
         style={{
           display: "flex",
