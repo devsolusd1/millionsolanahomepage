@@ -645,12 +645,32 @@ export default function PixelCanvas() {
 
     setBusy(true);
     try {
+      // Pre-check the cooldown so we don't burn tokens only to be rejected.
+      const wallet = publicKey.toBase58();
+      const cd = await fetch(`/api/cooldown?wallet=${wallet}`, { cache: "no-store" })
+        .then((r) => r.json())
+        .catch(() => ({ remainingMs: 0 }));
+      if (cd.remainingMs > 0) {
+        const mins = Math.ceil(cd.remainingMs / 60000);
+        setStatus(`Wallet on cooldown — try again in ${mins} min.`);
+        setBusy(false);
+        return;
+      }
+
+      const trimmedLink = linkInput.trim();
+      // The memo is the on-chain source of truth for region + link.
+      const memo = JSON.stringify({
+        link: trimmedLink || null,
+        region: { x: claim.x, y: claim.y, w: claim.w, h: claim.h },
+      });
+
       setStatus(`Burning ${cost} $SOLANAHP for your ${claim.w}×${claim.h} region...`);
       // Burn covers the whole selected area, not just what you drew.
       const signature = await burnForPixels(
         connection,
         publicKey,
         claimArea,
+        memo,
         (tx, conn) => sendTransaction(tx, conn),
       );
 
@@ -660,17 +680,10 @@ export default function PixelCanvas() {
         return { x, y, color: c };
       });
 
-      const trimmedLink = linkInput.trim();
       const res = await fetch("/api/place", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          signature,
-          wallet: publicKey.toBase58(),
-          region: { x: claim.x, y: claim.y, w: claim.w, h: claim.h },
-          pixels,
-          link: trimmedLink || undefined,
-        }),
+        body: JSON.stringify({ signature, wallet, pixels }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to place region.");

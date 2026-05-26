@@ -151,6 +151,12 @@ export default function DocsPage() {
             signed by you, never reused) and only then writes your pixels to the
             board. If the burn doesn&rsquo;t check out, nothing is placed.
           </p>
+          <p style={{ marginTop: 10 }}>
+            The burn transaction also carries an on-chain <strong>memo</strong> with
+            your region and link — that memo is the source of truth, so your claim
+            and its link live on Solana, not just in our database. To keep things
+            fair, each wallet can place once every <strong>10 minutes</strong>.
+          </p>
         </Section>
 
         <Section title="Link your area">

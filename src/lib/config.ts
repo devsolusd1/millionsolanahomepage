@@ -14,6 +14,12 @@ export const TOKENS_PER_PIXEL = 10;
 export const MAX_CLAIM_SIZE = 300;
 export const MAX_PIXELS_PER_WALLET = MAX_CLAIM_SIZE * MAX_CLAIM_SIZE; // 40_000
 
+// Minimum time between placements for a single wallet.
+export const COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes
+
+// SPL Memo program — used to embed {link, region} in the burn tx.
+export const MEMO_PROGRAM_ID = "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr";
+
 // SPL token mint address (set after running scripts/create-token.ts).
 export const TOKEN_MINT = process.env.NEXT_PUBLIC_TOKEN_MINT ?? "";
 

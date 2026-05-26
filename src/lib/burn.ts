@@ -2,26 +2,42 @@ import {
   Connection,
   PublicKey,
   Transaction,
+  TransactionInstruction,
 } from "@solana/web3.js";
 import {
   createBurnCheckedInstruction,
   getAssociatedTokenAddress,
 } from "@solana/spl-token";
-import { TOKEN_MINT, TOKEN_DECIMALS, TOKENS_PER_PIXEL } from "./config";
+import {
+  TOKEN_MINT,
+  TOKEN_DECIMALS,
+  TOKENS_PER_PIXEL,
+  MEMO_PROGRAM_ID,
+} from "./config";
 
 type SendFn = (
   tx: Transaction,
   connection: Connection,
 ) => Promise<string>;
 
+function memoInstruction(text: string): TransactionInstruction {
+  return new TransactionInstruction({
+    keys: [],
+    programId: new PublicKey(MEMO_PROGRAM_ID),
+    data: Buffer.from(text, "utf8"),
+  });
+}
+
 /**
  * Builds and sends a burn transaction for `pixelCount` pixels worth of tokens,
- * then waits for confirmation. Returns the transaction signature.
+ * with an on-chain memo (the placement's region + link), then waits for
+ * confirmation. Returns the transaction signature.
  */
 export async function burnForPixels(
   connection: Connection,
   owner: PublicKey,
   pixelCount: number,
+  memo: string,
   sendTransaction: SendFn,
 ): Promise<string> {
   if (!TOKEN_MINT) throw new Error("Token mint is not configured.");
@@ -30,15 +46,10 @@ export async function burnForPixels(
 
   const ata = await getAssociatedTokenAddress(mint, owner);
 
-  const ix = createBurnCheckedInstruction(
-    ata,
-    mint,
-    owner,
-    amount,
-    TOKEN_DECIMALS,
+  const tx = new Transaction().add(
+    createBurnCheckedInstruction(ata, mint, owner, amount, TOKEN_DECIMALS),
+    memoInstruction(memo),
   );
-
-  const tx = new Transaction().add(ix);
   tx.feePayer = owner;
   const { blockhash, lastValidBlockHeight } =
     await connection.getLatestBlockhash();
