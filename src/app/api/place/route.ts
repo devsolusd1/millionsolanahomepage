@@ -5,10 +5,12 @@ import {
   CANVAS_WIDTH,
   CANVAS_HEIGHT,
   TOKENS_PER_PIXEL,
+  TOKEN_DECIMALS,
   MAX_CLAIM_SIZE,
   COOLDOWN_MS,
   COOLDOWN_EXEMPT,
   MAX_NAME_LENGTH,
+  pixelCostBaseUnits,
 } from "@/lib/config";
 
 type IncomingPixel = { x: number; y: number; color: string };
@@ -140,10 +142,13 @@ export async function POST(req: NextRequest) {
 
   const area = region.w * region.h;
 
-  // Burn must cover the whole region (area-based pricing).
-  if (verified.amount < area * TOKENS_PER_PIXEL) {
+  // Burn must cover the whole region (area-based pricing), in base units.
+  const requiredBaseUnits = Number(pixelCostBaseUnits(area));
+  if (verified.amount < requiredBaseUnits) {
+    const factor = TOKENS_PER_PIXEL * 10 ** TOKEN_DECIMALS;
     return bad(
-      `Burn (${verified.amount}) does not cover the region cost (${area * TOKENS_PER_PIXEL}).`,
+      `Burn covers ${Math.floor(verified.amount / factor)} pixels but the region ` +
+        `is ${area} (need ${area * TOKENS_PER_PIXEL} $PIXEL).`,
       402,
     );
   }

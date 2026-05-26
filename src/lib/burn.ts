@@ -11,8 +11,8 @@ import {
 import {
   TOKEN_MINT,
   TOKEN_DECIMALS,
-  TOKENS_PER_PIXEL,
   MEMO_PROGRAM_ID,
+  pixelCostBaseUnits,
 } from "./config";
 
 type SendFn = (
@@ -42,7 +42,7 @@ export async function burnForPixels(
 ): Promise<string> {
   if (!TOKEN_MINT) throw new Error("Token mint is not configured.");
   const mint = new PublicKey(TOKEN_MINT);
-  const amount = pixelCount * TOKENS_PER_PIXEL;
+  const amount = pixelCostBaseUnits(pixelCount);
 
   const ata = await getAssociatedTokenAddress(mint, owner);
 

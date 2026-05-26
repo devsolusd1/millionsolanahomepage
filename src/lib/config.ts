@@ -31,8 +31,15 @@ export const MEMO_PROGRAM_ID = "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr";
 // SPL token mint address (set after running scripts/create-token.ts).
 export const TOKEN_MINT = process.env.NEXT_PUBLIC_TOKEN_MINT ?? "";
 
-// Token decimals — we create the mint with 0 decimals so 1 token = 1 base unit.
-export const TOKEN_DECIMALS = 0;
+// Token decimals — MUST match the actual mint. Set NEXT_PUBLIC_TOKEN_DECIMALS
+// to the token's decimals (0 if you minted with 0 decimals).
+export const TOKEN_DECIMALS = Number(process.env.NEXT_PUBLIC_TOKEN_DECIMALS ?? 0);
+
+// Base units (smallest unit) that `pixels` cost, accounting for decimals.
+// E.g. 1 pixel = 10 whole tokens = 10 * 10^decimals base units.
+export function pixelCostBaseUnits(pixels: number): number {
+  return pixels * TOKENS_PER_PIXEL * Math.pow(10, TOKEN_DECIMALS);
+}
 
 // Solana RPC endpoint.
 export const SOLANA_RPC =
