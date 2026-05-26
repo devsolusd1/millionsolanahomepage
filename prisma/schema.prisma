@@ -1,0 +1,37 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// A single painted pixel on the canvas. Sparse: only painted pixels exist.
+model Pixel {
+  x         Int
+  y         Int
+  // Color stored as #rrggbb hex string.
+  color     String
+  // Wallet that painted it (base58 pubkey).
+  owner     String
+  // Burn transaction signature that paid for this pixel.
+  txSig     String
+  updatedAt DateTime @updatedAt
+
+  @@id([x, y])
+  @@index([owner])
+}
+
+// A verified burn transaction. Acts as proof + ledger of how many pixels it bought.
+model BurnTx {
+  signature      String   @id
+  wallet         String
+  // Total tokens burned in this tx.
+  amount         Int
+  // Pixels this burn entitled the user to (amount / TOKENS_PER_PIXEL).
+  pixelsClaimed  Int
+  createdAt      DateTime @default(now())
+
+  @@index([wallet])
+}
