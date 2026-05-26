@@ -167,7 +167,9 @@ export default function DocsPage() {
             A painted pixel can never be changed or painted over by anyone,
             including you. If you try to place on a pixel someone already owns, the
             placement is rejected before you burn. First to paint a pixel owns it
-            for good.
+            for good. Hover any painted area to see the burn transaction that
+            eternalized it, and click to open it on the Solana Explorer — every
+            pixel is verifiably on-chain.
           </p>
         </Section>
 

@@ -18,7 +18,11 @@ import {
   TOKENS_PER_PIXEL,
   TOKEN_MINT,
   MAX_CLAIM_SIZE,
+  explorerTxUrl,
 } from "@/lib/config";
+
+type Placement = { sig: string; owner: string; link: string | null };
+const short = (s: string) => `${s.slice(0, 4)}…${s.slice(-4)}`;
 import { burnForPixels } from "@/lib/burn";
 
 type Tool = "select" | "draw" | "line" | "rect" | "ellipse" | "erase" | "image" | "pan";
@@ -66,11 +70,13 @@ export default function PixelCanvas() {
   const [hasStamp, setHasStamp] = useState(false);
   const hoverRef = useRef<{ x: number; y: number } | null>(null);
 
-  // Link to attach to this placement, and the map of committed pixel -> URL.
+  // Link to attach to this placement, and per-committed-pixel placement info
+  // (burn tx, owner, optional link) so we can prove on-chain provenance.
   const [linkInput, setLinkInput] = useState("");
-  const linksRef = useRef<Map<string, string>>(new Map());
-  const [tooltip, setTooltip] = useState<{ x: number; y: number; url: string } | null>(null);
+  const infoRef = useRef<Map<string, Placement>>(new Map());
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; info: Placement } | null>(null);
   const downPosRef = useRef<{ x: number; y: number } | null>(null);
+  const [lastTx, setLastTx] = useState<string | null>(null);
 
   const pendingCount = pending.size;
   const cost = pendingCount * TOKENS_PER_PIXEL;
@@ -80,8 +86,8 @@ export default function PixelCanvas() {
     const res = await fetch("/api/canvas", { cache: "no-store" });
     const data = await res.json();
     const map = new Map<string, string>();
-    const linkMap = new Map<string, string>();
-    const links = (data.links ?? []) as { url: string; owner: string }[];
+    const info = new Map<string, Placement>();
+    const placements = (data.placements ?? []) as Placement[];
     for (const p of data.pixels as {
       x: number;
       y: number;
@@ -89,10 +95,10 @@ export default function PixelCanvas() {
       g: number;
     }[]) {
       map.set(keyOf(p.x, p.y), p.color);
-      if (p.g >= 0 && links[p.g]) linkMap.set(keyOf(p.x, p.y), links[p.g].url);
+      if (p.g >= 0 && placements[p.g]) info.set(keyOf(p.x, p.y), placements[p.g]);
     }
     committed.current = map;
-    linksRef.current = linkMap;
+    infoRef.current = info;
     draw();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -452,16 +458,16 @@ export default function PixelCanvas() {
       return;
     }
 
-    // Not dragging: show a tooltip when hovering a linked area.
+    // Not dragging: show a tooltip when hovering any painted (on-chain) area.
     const { x, y } = toPixel(e.clientX, e.clientY);
-    const url = linksRef.current.get(keyOf(x, y));
-    if (url) {
+    const info = infoRef.current.get(keyOf(x, y));
+    if (info) {
       const wrap = wrapRef.current;
       const r = wrap?.getBoundingClientRect();
       setTooltip({
         x: e.clientX - (r?.left ?? 0),
         y: e.clientY - (r?.top ?? 0),
-        url,
+        info,
       });
     } else if (tooltip) {
       setTooltip(null);
@@ -469,13 +475,14 @@ export default function PixelCanvas() {
   };
 
   const onPointerUp = (e: React.PointerEvent) => {
-    // A click (no real drag) on a linked area opens its URL.
+    // A click (no real drag) on a painted area: open its link if set,
+    // otherwise open the burn transaction on the Solana Explorer.
     const down = downPosRef.current;
     downPosRef.current = null;
     if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 5) {
       const { x, y } = toPixel(e.clientX, e.clientY);
-      const url = linksRef.current.get(keyOf(x, y));
-      if (url) {
+      const info = infoRef.current.get(keyOf(x, y));
+      if (info) {
         // cancel any in-progress selection/draw started by this click
         selectingRef.current = null;
         anchorRef.current = null;
@@ -483,7 +490,8 @@ export default function PixelCanvas() {
         shapePixelsRef.current = null;
         dragging.current = false;
         (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
-        window.open(url, "_blank", "noopener,noreferrer");
+        const target = info.link ?? (info.sig ? explorerTxUrl(info.sig) : null);
+        if (target) window.open(target, "_blank", "noopener,noreferrer");
         draw();
         return;
       }
@@ -631,13 +639,19 @@ export default function PixelCanvas() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to place pixels.");
 
+      const placement: Placement = {
+        sig: signature,
+        owner: publicKey.toBase58(),
+        link: trimmedLink || null,
+      };
       for (const [k, c] of pending) {
         committed.current.set(k, c);
-        if (trimmedLink) linksRef.current.set(k, trimmedLink);
+        infoRef.current.set(k, placement);
       }
       setPending(new Map());
       setLinkInput("");
-      setStatus(`Placed ${data.placed} pixels!`);
+      setLastTx(signature);
+      setStatus(`Placed ${data.placed} pixels — eternalized on-chain forever.`);
       draw();
     } catch (e) {
       setStatus(e instanceof Error ? e.message : "Something went wrong.");
@@ -923,10 +937,23 @@ export default function PixelCanvas() {
             >
               {busy ? "Working..." : "Burn & Place"}
             </button>
+            <small style={{ color: "#8a8a96", lineHeight: 1.4 }}>
+              ⛓ Burning is permanent — your art is eternalized on-chain forever.
+            </small>
             {status && (
               <div style={{ fontSize: 12, color: "#444", wordBreak: "break-word" }}>
                 {status}
               </div>
+            )}
+            {lastTx && (
+              <a
+                href={explorerTxUrl(lastTx)}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ fontSize: 12, color: "#9945FF", fontWeight: 600 }}
+              >
+                View burn tx on Explorer ↗
+              </a>
             )}
           </div>
         </aside>
@@ -960,20 +987,41 @@ export default function PixelCanvas() {
                 position: "absolute",
                 left: tooltip.x + 12,
                 top: tooltip.y + 12,
-                maxWidth: 280,
-                padding: "5px 9px",
+                maxWidth: 300,
+                padding: "7px 10px",
                 borderRadius: 6,
-                background: "rgba(20,20,30,0.92)",
+                background: "rgba(20,20,30,0.93)",
                 color: "#fff",
                 fontSize: 12,
+                lineHeight: 1.5,
                 pointerEvents: "none",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
                 zIndex: 10,
               }}
             >
-              🔗 {tooltip.url} <span style={{ opacity: 0.6 }}>· click to open</span>
+              <div style={{ color: "#14F195", fontWeight: 700 }}>
+                ⛓ Eternalized on-chain
+              </div>
+              {tooltip.info.sig && (
+                <div style={{ opacity: 0.85 }}>
+                  burn tx: {short(tooltip.info.sig)}
+                </div>
+              )}
+              {tooltip.info.link && (
+                <div
+                  style={{
+                    opacity: 0.85,
+                    maxWidth: 280,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  🔗 {tooltip.info.link}
+                </div>
+              )}
+              <div style={{ opacity: 0.55, marginTop: 2 }}>
+                click to {tooltip.info.link ? "open link" : "view tx"}
+              </div>
             </div>
           )}
         </div>

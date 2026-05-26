@@ -26,3 +26,10 @@ export const SOLANA_RPC =
 
 export const SOLANA_CLUSTER = (process.env.NEXT_PUBLIC_SOLANA_CLUSTER ??
   "devnet") as "devnet" | "mainnet-beta" | "testnet";
+
+// Solana Explorer link for a transaction signature (cluster-aware).
+export function explorerTxUrl(signature: string): string {
+  const suffix =
+    SOLANA_CLUSTER === "mainnet-beta" ? "" : `?cluster=${SOLANA_CLUSTER}`;
+  return `https://explorer.solana.com/tx/${signature}${suffix}`;
+}
