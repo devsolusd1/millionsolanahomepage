@@ -1,10 +1,10 @@
 // Shared configuration for the Million Solana Homepage.
 // Values are read from env where they differ per-environment.
 
-// Sized so the whole board can absorb ~700 million tokens being burned:
-// 8_400 * 8_400 = 7.056e7 pixels * 10 tokens = 7.056e8 (~705.6M) tokens.
-export const CANVAS_WIDTH = 8_400;
-export const CANVAS_HEIGHT = 8_400;
+// Sized so the whole board can absorb exactly the 1B token supply being burned:
+// 10_000 * 10_000 = 1e8 pixels * 10 tokens = 1e9 (1B) tokens.
+export const CANVAS_WIDTH = 10_000;
+export const CANVAS_HEIGHT = 10_000;
 
 // Burn economics: each pixel costs this many tokens (whole tokens, decimals = 0).
 export const TOKENS_PER_PIXEL = 10;
@@ -17,10 +17,11 @@ export const MAX_PIXELS_PER_WALLET = MAX_CLAIM_SIZE * MAX_CLAIM_SIZE; // 40_000
 // Minimum time between placements for a single wallet.
 export const COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes
 
-// Wallets exempt from the cooldown (test wallets).
-export const COOLDOWN_EXEMPT = new Set<string>([
-  "Dc2jr8WKfXFZ3NJNK6SufSjKXFYZXbcgRv1a5yR9d1gw",
-]);
+// Wallets exempt from the cooldown (none in production).
+export const COOLDOWN_EXEMPT = new Set<string>([]);
+
+// Cooldown duration in minutes, for display.
+export const COOLDOWN_MIN = Math.round(COOLDOWN_MS / 60000);
 
 // Max length of the creator name.
 export const MAX_NAME_LENGTH = 40;

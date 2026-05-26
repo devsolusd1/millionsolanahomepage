@@ -33,9 +33,9 @@ function loadMintKeypair(): Keypair | undefined {
 }
 
 const DECIMALS = 0;
-// Default supply: 700 million tokens. The board (8.4k x 8.4k) can absorb ~705.6M
+// Default supply: 1 billion tokens. The board (10k x 10k) absorbs exactly 1B
 // tokens burned at 10 tokens/pixel, so the full supply can be painted.
-const INITIAL_SUPPLY = Number(process.env.INITIAL_SUPPLY ?? 700_000_000);
+const INITIAL_SUPPLY = Number(process.env.INITIAL_SUPPLY ?? 1_000_000_000);
 
 function loadOrCreateAuthority(): Keypair {
   const path = resolve(

@@ -18,6 +18,7 @@ import {
   TOKENS_PER_PIXEL,
   TOKEN_MINT,
   MAX_CLAIM_SIZE,
+  COOLDOWN_MIN,
   explorerTxUrl,
   explorerAddressUrl,
 } from "@/lib/config";
@@ -761,7 +762,9 @@ export default function PixelCanvas() {
       setClaim(null);
       setTool("select");
       setLastTx(signature);
-      setStatus(`Region placed — eternalized on-chain forever.`);
+      setStatus(
+        `Region placed — eternalized on-chain forever. You can draw again in ${COOLDOWN_MIN} minutes.`,
+      );
       draw();
     } catch (e) {
       setStatus(e instanceof Error ? e.message : "Something went wrong.");
@@ -1092,6 +1095,7 @@ export default function PixelCanvas() {
             </button>
             <small style={{ color: "#8a8a96", lineHeight: 1.4 }}>
               ⛓ Burning is permanent — your art is eternalized on-chain forever.
+              <br />⏱ Each wallet can draw again every {COOLDOWN_MIN} minutes.
             </small>
             {status && (
               <div style={{ fontSize: 12, color: "#444", wordBreak: "break-word" }}>
@@ -1323,7 +1327,7 @@ export default function PixelCanvas() {
             {
               n: "5",
               t: "Burn & Place",
-              d: `Burning costs ${TOKENS_PER_PIXEL} $PIXEL per pixel of the whole selected region. The tokens are destroyed and your art is eternalized on-chain — forever, uneditable.`,
+              d: `Burning costs ${TOKENS_PER_PIXEL} $PIXEL per pixel of the whole selected region. The tokens are destroyed and your art is eternalized on-chain — forever, uneditable. Each wallet can draw again every ${COOLDOWN_MIN} minutes.`,
             },
           ].map((s) => (
             <div key={s.n} style={{ display: "flex", gap: 10, marginBottom: 12 }}>
