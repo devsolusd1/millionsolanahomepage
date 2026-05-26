@@ -23,6 +23,15 @@ import {
   mintTo,
 } from "@solana/spl-token";
 
+// Optional: use a specific keypair as the mint account (so the mint has a
+// chosen address). Set MINT_KEYPAIR to a keypair JSON path.
+function loadMintKeypair(): Keypair | undefined {
+  const path = process.env.MINT_KEYPAIR;
+  if (!path) return undefined;
+  const secret = JSON.parse(readFileSync(resolve(path), "utf8")) as number[];
+  return Keypair.fromSecretKey(Uint8Array.from(secret));
+}
+
 const DECIMALS = 0;
 // Default supply: 700 million tokens. The board (8.4k x 8.4k) can absorb ~705.6M
 // tokens burned at 10 tokens/pixel, so the full supply can be painted.
@@ -87,6 +96,10 @@ async function main() {
 
   await ensureFunds(connection, authority);
 
+  const mintKeypair = loadMintKeypair();
+  if (mintKeypair)
+    console.log(`Using provided mint address: ${mintKeypair.publicKey.toBase58()}`);
+
   console.log("Creating mint...");
   const mint = await createMint(
     connection,
@@ -94,6 +107,7 @@ async function main() {
     authority.publicKey, // mint authority
     authority.publicKey, // freeze authority
     DECIMALS,
+    mintKeypair, // optional: chosen mint account keypair
   );
   console.log(`Mint created: ${mint.toBase58()}`);
 
