@@ -549,8 +549,17 @@ export default function PixelCanvas() {
   const onPointerUp = (e: React.PointerEvent) => {
     const down = downPosRef.current;
     downPosRef.current = null;
-    const isClick = !!down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 5;
     (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
+
+    // Releasing a pan (middle-button / Shift / Pan tool) just stops panning —
+    // it must not fall through into select/draw logic.
+    if (panning.current) {
+      panning.current = null;
+      dragging.current = false;
+      return;
+    }
+
+    const isClick = !!down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 5;
 
     // A click (no real drag) on a painted area opens its link or burn tx.
     if (isClick) {
