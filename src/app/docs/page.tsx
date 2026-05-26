@@ -94,6 +94,25 @@ export default function DocsPage() {
           yours forever and can never be overwritten.
         </p>
 
+        <div
+          style={{
+            marginTop: 24,
+            padding: "16px 18px",
+            borderRadius: 10,
+            background: "#0b0b12",
+            color: "#fff",
+            fontSize: 15,
+            lineHeight: 1.7,
+          }}
+        >
+          <strong style={{ color: "#14F195" }}>⛓ Eternalized on-chain.</strong>{" "}
+          Every drawing is backed by a real Solana burn transaction. The tokens
+          are destroyed forever and your art — its region, colors and link — is
+          permanently recorded on-chain via the transaction memo. Nobody, not even
+          us, can edit or remove it. Hover any drawing to see its burn tx and open
+          it on Solscan.
+        </div>
+
         <Section title="The $PIXEL token">
           <p>
             $PIXEL is an SPL token on Solana. The only thing it does is buy you
