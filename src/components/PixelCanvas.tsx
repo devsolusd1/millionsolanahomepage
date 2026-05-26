@@ -577,7 +577,7 @@ export default function PixelCanvas() {
     const sy = e.clientY - rect.top;
     const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
     setView((v) => {
-      const newScale = clamp(v.scale * factor, 0.1, 30);
+      const newScale = clamp(v.scale * factor, 0.01, 30);
       const ox = sx - (sx - v.ox) * (newScale / v.scale);
       const oy = sy - (sy - v.oy) * (newScale / v.scale);
       return { scale: newScale, ox, oy };
@@ -731,6 +731,20 @@ export default function PixelCanvas() {
     setTool("select");
     setStatus("");
   };
+
+  // Frame the whole board, centered in the viewport.
+  const fitToBoard = useCallback(() => {
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const cw = wrap.clientWidth;
+    const ch = wrap.clientHeight;
+    const scale = Math.min(cw / CANVAS_WIDTH, ch / CANVAS_HEIGHT) * 0.92;
+    setView({
+      scale,
+      ox: (cw - CANVAS_WIDTH * scale) / 2,
+      oy: (ch - CANVAS_HEIGHT * scale) / 2,
+    });
+  }, []);
 
   const tools: { id: Tool; label: string; icon: string; needsClaim: boolean }[] =
     useMemo(
@@ -1076,6 +1090,27 @@ export default function PixelCanvas() {
               touchAction: "none",
             }}
           />
+          <button
+            onClick={fitToBoard}
+            title="Fit the whole board to the screen"
+            style={{
+              position: "absolute",
+              top: 12,
+              right: 12,
+              padding: "7px 12px",
+              borderRadius: 8,
+              border: "1px solid #d9d9e0",
+              background: "rgba(255,255,255,0.95)",
+              color: "#333",
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: "pointer",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.12)",
+              zIndex: 9,
+            }}
+          >
+            ⊡ Fit
+          </button>
           {tooltip && (
             <div
               style={{
