@@ -94,6 +94,7 @@ export default function PixelCanvas() {
   const tooltipSigRef = useRef<string | null>(null);
   const downPosRef = useRef<{ x: number; y: number } | null>(null);
   const [lastTx, setLastTx] = useState<string | null>(null);
+  const [showGuide, setShowGuide] = useState(true);
 
   // Find the reserved region containing a board pixel (for tooltip/click/overlap).
   const regionAt = (px: number, py: number): Region | undefined =>
@@ -1157,6 +1158,29 @@ export default function PixelCanvas() {
           >
             ⊡ Fit
           </button>
+          {!showGuide && (
+            <button
+              onClick={() => setShowGuide(true)}
+              title="Show the guide"
+              style={{
+                position: "absolute",
+                top: 12,
+                left: 12,
+                padding: "7px 12px",
+                borderRadius: 8,
+                border: "1px solid #d9d9e0",
+                background: "rgba(255,255,255,0.95)",
+                color: "#5b3bff",
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.12)",
+                zIndex: 9,
+              }}
+            >
+              ❔ How it works
+            </button>
+          )}
           {tooltip && (
             <div
               style={{
@@ -1224,6 +1248,7 @@ export default function PixelCanvas() {
         </div>
 
         {/* right-side guide */}
+        {showGuide && (
         <aside
           style={{
             width: 280,
@@ -1239,16 +1264,39 @@ export default function PixelCanvas() {
         >
           <div
             style={{
-              fontFamily: "var(--font-pixel)",
-              fontSize: 13,
-              backgroundImage: "linear-gradient(90deg, #9945FF, #14F195)",
-              WebkitBackgroundClip: "text",
-              backgroundClip: "text",
-              color: "transparent",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
               marginBottom: 14,
             }}
           >
-            How it works
+            <span
+              style={{
+                fontFamily: "var(--font-pixel)",
+                fontSize: 13,
+                backgroundImage: "linear-gradient(90deg, #9945FF, #14F195)",
+                WebkitBackgroundClip: "text",
+                backgroundClip: "text",
+                color: "transparent",
+              }}
+            >
+              How it works
+            </span>
+            <button
+              onClick={() => setShowGuide(false)}
+              title="Hide the guide"
+              style={{
+                border: "1px solid #d9d9e0",
+                background: "#fff",
+                borderRadius: 6,
+                padding: "3px 8px",
+                fontSize: 12,
+                cursor: "pointer",
+                color: "#666",
+              }}
+            >
+              Hide ✕
+            </button>
           </div>
 
           {[
@@ -1349,6 +1397,7 @@ export default function PixelCanvas() {
             Full docs →
           </Link>
         </aside>
+        )}
       </div>
 
       <footer
