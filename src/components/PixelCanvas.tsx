@@ -66,6 +66,12 @@ export default function PixelCanvas() {
   const [hasStamp, setHasStamp] = useState(false);
   const hoverRef = useRef<{ x: number; y: number } | null>(null);
 
+  // Link to attach to this placement, and the map of committed pixel -> URL.
+  const [linkInput, setLinkInput] = useState("");
+  const linksRef = useRef<Map<string, string>>(new Map());
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; url: string } | null>(null);
+  const downPosRef = useRef<{ x: number; y: number } | null>(null);
+
   const pendingCount = pending.size;
   const cost = pendingCount * TOKENS_PER_PIXEL;
 
@@ -74,10 +80,19 @@ export default function PixelCanvas() {
     const res = await fetch("/api/canvas", { cache: "no-store" });
     const data = await res.json();
     const map = new Map<string, string>();
-    for (const p of data.pixels as { x: number; y: number; color: string }[]) {
+    const linkMap = new Map<string, string>();
+    const links = (data.links ?? []) as { url: string; owner: string }[];
+    for (const p of data.pixels as {
+      x: number;
+      y: number;
+      color: string;
+      g: number;
+    }[]) {
       map.set(keyOf(p.x, p.y), p.color);
+      if (p.g >= 0 && links[p.g]) linkMap.set(keyOf(p.x, p.y), links[p.g].url);
     }
     committed.current = map;
+    linksRef.current = linkMap;
     draw();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -356,6 +371,7 @@ export default function PixelCanvas() {
 
   const onPointerDown = (e: React.PointerEvent) => {
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    downPosRef.current = { x: e.clientX, y: e.clientY };
 
     if (tool === "pan" || e.button === 1 || e.shiftKey) {
       panning.current = { x: e.clientX, y: e.clientY, ox: view.ox, oy: view.oy };
@@ -431,10 +447,48 @@ export default function PixelCanvas() {
       return;
     }
 
-    if (dragging.current) paintAt(e.clientX, e.clientY, tool === "erase");
+    if (dragging.current) {
+      paintAt(e.clientX, e.clientY, tool === "erase");
+      return;
+    }
+
+    // Not dragging: show a tooltip when hovering a linked area.
+    const { x, y } = toPixel(e.clientX, e.clientY);
+    const url = linksRef.current.get(keyOf(x, y));
+    if (url) {
+      const wrap = wrapRef.current;
+      const r = wrap?.getBoundingClientRect();
+      setTooltip({
+        x: e.clientX - (r?.left ?? 0),
+        y: e.clientY - (r?.top ?? 0),
+        url,
+      });
+    } else if (tooltip) {
+      setTooltip(null);
+    }
   };
 
   const onPointerUp = (e: React.PointerEvent) => {
+    // A click (no real drag) on a linked area opens its URL.
+    const down = downPosRef.current;
+    downPosRef.current = null;
+    if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 5) {
+      const { x, y } = toPixel(e.clientX, e.clientY);
+      const url = linksRef.current.get(keyOf(x, y));
+      if (url) {
+        // cancel any in-progress selection/draw started by this click
+        selectingRef.current = null;
+        anchorRef.current = null;
+        shapeAnchorRef.current = null;
+        shapePixelsRef.current = null;
+        dragging.current = false;
+        (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
+        window.open(url, "_blank", "noopener,noreferrer");
+        draw();
+        return;
+      }
+    }
+
     if (tool === "select" && selectingRef.current) {
       // finalize claim; keep the start anchor for a click (1x1) selection
       const sel = selectingRef.current;
@@ -563,16 +617,26 @@ export default function PixelCanvas() {
         return { x, y, color: c };
       });
 
+      const trimmedLink = linkInput.trim();
       const res = await fetch("/api/place", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ signature, wallet: publicKey.toBase58(), pixels }),
+        body: JSON.stringify({
+          signature,
+          wallet: publicKey.toBase58(),
+          pixels,
+          link: trimmedLink || undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to place pixels.");
 
-      for (const [k, c] of pending) committed.current.set(k, c);
+      for (const [k, c] of pending) {
+        committed.current.set(k, c);
+        if (trimmedLink) linksRef.current.set(k, trimmedLink);
+      }
       setPending(new Map());
+      setLinkInput("");
       setStatus(`Placed ${data.placed} pixels!`);
       draw();
     } catch (e) {
@@ -811,6 +875,26 @@ export default function PixelCanvas() {
             <small style={{ opacity: 0.6 }}>Or paste (Ctrl+V) an image.</small>
           </div>
 
+          <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 13 }}>
+            🔗 Link (optional)
+            <input
+              type="url"
+              inputMode="url"
+              placeholder="https://your-site.com"
+              value={linkInput}
+              onChange={(e) => setLinkInput(e.target.value)}
+              style={{
+                padding: "8px 10px",
+                borderRadius: 6,
+                border: "1px solid #ddd",
+                fontSize: 13,
+              }}
+            />
+            <small style={{ opacity: 0.6 }}>
+              Visitors who click your area open this URL.
+            </small>
+          </label>
+
           <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
             <div style={{ fontSize: 13, lineHeight: 1.6 }}>
               Pending: <strong>{pendingCount}</strong> px
@@ -854,15 +938,44 @@ export default function PixelCanvas() {
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
+            onPointerLeave={() => tooltip && setTooltip(null)}
             onWheel={onWheel}
             style={{
               width: "100%",
               height: "100%",
               display: "block",
-              cursor: tool === "pan" ? "grab" : tool === "select" ? "cell" : "crosshair",
+              cursor: tooltip
+                ? "pointer"
+                : tool === "pan"
+                  ? "grab"
+                  : tool === "select"
+                    ? "cell"
+                    : "crosshair",
               touchAction: "none",
             }}
           />
+          {tooltip && (
+            <div
+              style={{
+                position: "absolute",
+                left: tooltip.x + 12,
+                top: tooltip.y + 12,
+                maxWidth: 280,
+                padding: "5px 9px",
+                borderRadius: 6,
+                background: "rgba(20,20,30,0.92)",
+                color: "#fff",
+                fontSize: 12,
+                pointerEvents: "none",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                zIndex: 10,
+              }}
+            >
+              🔗 {tooltip.url} <span style={{ opacity: 0.6 }}>· click to open</span>
+            </div>
+          )}
         </div>
       </div>
 

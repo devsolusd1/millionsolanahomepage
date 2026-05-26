@@ -31,6 +31,8 @@ model BurnTx {
   amount         Int
   // Pixels this burn entitled the user to (amount / TOKENS_PER_PIXEL).
   pixelsClaimed  Int
+  // Optional URL the painted area links to (http/https only).
+  link           String?
   createdAt      DateTime @default(now())
 
   @@index([wallet])

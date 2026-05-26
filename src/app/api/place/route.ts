@@ -13,13 +13,35 @@ type IncomingPixel = { x: number; y: number; color: string };
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 const MAX_PIXELS_PER_REQUEST = MAX_PIXELS_PER_WALLET;
+const MAX_LINK_LENGTH = 400;
+
+// Only allow http/https links (never javascript:, data:, etc).
+function normalizeLink(raw: unknown): string | null | undefined {
+  if (raw === undefined || raw === null || raw === "") return null;
+  if (typeof raw !== "string") return undefined; // invalid
+  const value = raw.trim();
+  if (value.length > MAX_LINK_LENGTH) return undefined;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return undefined;
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") return undefined;
+  return url.toString();
+}
 
 function bad(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
 }
 
 export async function POST(req: NextRequest) {
-  let body: { signature?: string; wallet?: string; pixels?: IncomingPixel[] };
+  let body: {
+    signature?: string;
+    wallet?: string;
+    pixels?: IncomingPixel[];
+    link?: string;
+  };
   try {
     body = await req.json();
   } catch {
@@ -33,6 +55,10 @@ export async function POST(req: NextRequest) {
   if (typeof wallet !== "string" || !wallet) return bad("Missing wallet.");
   if (!Array.isArray(pixels) || pixels.length === 0)
     return bad("No pixels provided.");
+
+  const link = normalizeLink(body.link);
+  if (link === undefined)
+    return bad("Invalid link — must be a valid http(s) URL.");
   if (pixels.length > MAX_PIXELS_PER_REQUEST)
     return bad(`Too many pixels (max ${MAX_PIXELS_PER_REQUEST}).`);
 
@@ -131,6 +157,7 @@ export async function POST(req: NextRequest) {
           wallet,
           amount: verified.amount,
           pixelsClaimed: pixels.length,
+          link,
         },
       }),
       prisma.pixel.createMany({

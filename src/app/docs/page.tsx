@@ -153,6 +153,15 @@ export default function DocsPage() {
           </p>
         </Section>
 
+        <Section title="Link your area">
+          <p>
+            When placing, you can attach an optional <strong>http(s) link</strong>{" "}
+            to your pixels. Anyone who hovers your area sees the URL, and clicking
+            it opens your site in a new tab — just like the original Million Dollar
+            Homepage. Your pixels become a permanent, clickable ad.
+          </p>
+        </Section>
+
         <Section title="Permanence &amp; conflicts">
           <p>
             A painted pixel can never be changed or painted over by anyone,
