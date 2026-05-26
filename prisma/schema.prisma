@@ -37,6 +37,8 @@ model BurnTx {
   rh             Int
   // Region area in pixels (rw * rh).
   pixelsClaimed  Int
+  // Display name of the creator (required for new placements; older rows may be null).
+  creator        String?
   // Optional URL the region links to (http/https only).
   link           String?
   createdAt      DateTime @default(now())

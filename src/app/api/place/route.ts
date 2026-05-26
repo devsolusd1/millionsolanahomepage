@@ -7,6 +7,8 @@ import {
   TOKENS_PER_PIXEL,
   MAX_CLAIM_SIZE,
   COOLDOWN_MS,
+  COOLDOWN_EXEMPT,
+  MAX_NAME_LENGTH,
 } from "@/lib/config";
 
 type IncomingPixel = { x: number; y: number; color: string };
@@ -31,10 +33,11 @@ function normalizeLink(raw: unknown): string | null | undefined {
   return url.toString();
 }
 
-// The burn tx memo is the source of truth: {"link": string|null, "region": {x,y,w,h}}.
+// The burn tx memo is the source of truth:
+// {"name": string, "link": string|null, "region": {x,y,w,h}}.
 function parseMemo(
   memo: string | null,
-): { region: Region; link: string | null } | null {
+): { region: Region; link: string | null; name: string } | null {
   if (!memo) return null;
   let obj: unknown;
   try {
@@ -43,7 +46,7 @@ function parseMemo(
     return null;
   }
   if (typeof obj !== "object" || obj === null) return null;
-  const o = obj as { link?: unknown; region?: unknown };
+  const o = obj as { name?: unknown; link?: unknown; region?: unknown };
   const r = o.region as Partial<Region> | undefined;
   if (
     !r ||
@@ -56,7 +59,10 @@ function parseMemo(
   }
   const link = normalizeLink(o.link);
   if (link === undefined) return null;
-  return { region: { x: r.x!, y: r.y!, w: r.w!, h: r.h! }, link };
+  if (typeof o.name !== "string") return null;
+  const name = o.name.trim();
+  if (!name || name.length > MAX_NAME_LENGTH) return null;
+  return { region: { x: r.x!, y: r.y!, w: r.w!, h: r.h! }, link, name };
 }
 
 function rectsOverlap(a: Region, b: { rx: number; ry: number; rw: number; rh: number }) {
@@ -85,20 +91,22 @@ export async function POST(req: NextRequest) {
   const existing = await prisma.burnTx.findUnique({ where: { signature } });
   if (existing) return bad("This burn transaction was already used.", 409);
 
-  // Per-wallet cooldown.
-  const last = await prisma.burnTx.findFirst({
-    where: { wallet },
-    orderBy: { createdAt: "desc" },
-    select: { createdAt: true },
-  });
-  if (last) {
-    const elapsed = Date.now() - last.createdAt.getTime();
-    if (elapsed < COOLDOWN_MS) {
-      const remainingSec = Math.ceil((COOLDOWN_MS - elapsed) / 1000);
-      return bad(
-        `Wallet on cooldown — try again in ${Math.ceil(remainingSec / 60)} min.`,
-        429,
-      );
+  // Per-wallet cooldown (test wallets are exempt).
+  if (!COOLDOWN_EXEMPT.has(wallet)) {
+    const last = await prisma.burnTx.findFirst({
+      where: { wallet },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true },
+    });
+    if (last) {
+      const elapsed = Date.now() - last.createdAt.getTime();
+      if (elapsed < COOLDOWN_MS) {
+        const remainingSec = Math.ceil((COOLDOWN_MS - elapsed) / 1000);
+        return bad(
+          `Wallet on cooldown — try again in ${Math.ceil(remainingSec / 60)} min.`,
+          429,
+        );
+      }
     }
   }
 
@@ -114,8 +122,8 @@ export async function POST(req: NextRequest) {
 
   // Region + link come from the on-chain memo (source of truth).
   const meta = parseMemo(verified.memo);
-  if (!meta) return bad("Burn tx is missing a valid memo (region/link).", 422);
-  const { region, link } = meta;
+  if (!meta) return bad("Burn tx is missing a valid memo (name/region/link).", 422);
+  const { region, link, name } = meta;
 
   if (
     region.w <= 0 ||
@@ -182,6 +190,7 @@ export async function POST(req: NextRequest) {
           rw: region.w,
           rh: region.h,
           pixelsClaimed: area,
+          creator: name,
           link,
         },
       }),

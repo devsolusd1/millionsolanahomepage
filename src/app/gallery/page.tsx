@@ -10,6 +10,7 @@ type Bbox = { minX: number; minY: number; maxX: number; maxY: number };
 type Placement = {
   sig: string;
   owner: string;
+  creator: string | null;
   pixelsClaimed: number;
   link: string | null;
   createdAt: string;
@@ -137,10 +138,11 @@ export default function GalleryPage() {
               <Thumb pixels={p.pixels} bbox={p.bbox} />
               <div style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 13, minWidth: 0 }}>
                 <div style={{ fontWeight: 700, fontSize: 15 }}>
-                  {p.pixelsClaimed.toLocaleString()} pixels
+                  {p.creator || "Anonymous"}
                 </div>
                 <div style={{ color: "#666" }}>
-                  by {short(p.owner)} · {new Date(p.createdAt).toLocaleString()}
+                  {p.pixelsClaimed.toLocaleString()} px · {short(p.owner)} ·{" "}
+                  {new Date(p.createdAt).toLocaleString()}
                 </div>
                 <a
                   href={explorerTxUrl(p.sig)}

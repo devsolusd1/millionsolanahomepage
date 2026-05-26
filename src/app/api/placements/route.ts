@@ -33,6 +33,7 @@ export async function GET() {
     return {
       sig: b.signature,
       owner: b.wallet,
+      creator: b.creator,
       pixelsClaimed: b.pixelsClaimed,
       link: b.link,
       createdAt: b.createdAt,

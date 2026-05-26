@@ -28,6 +28,7 @@ type Region = {
   h: number;
   sig: string;
   owner: string;
+  creator: string | null;
   link: string | null;
 };
 const short = (s: string) => `${s.slice(0, 4)}…${s.slice(-4)}`;
@@ -82,7 +83,9 @@ export default function PixelCanvas() {
 
   // Link to attach to this placement, and per-committed-pixel placement info
   // (burn tx, owner, optional link) so we can prove on-chain provenance.
+  const [nameInput, setNameInput] = useState("");
   const [linkInput, setLinkInput] = useState("");
+  const [noLink, setNoLink] = useState(false);
   const regionsRef = useRef<Region[]>([]);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; info: Region } | null>(null);
   const tooltipSigRef = useRef<string | null>(null);
@@ -643,6 +646,12 @@ export default function PixelCanvas() {
     if (!TOKEN_MINT) return setStatus("Token mint not configured on the server.");
     if (!claim) return setStatus("Claim a region first.");
 
+    const trimmedName = nameInput.trim();
+    if (!trimmedName) return setStatus("Enter your name before placing.");
+    const trimmedLink = noLink ? "" : linkInput.trim();
+    if (!noLink && !trimmedLink)
+      return setStatus("Add a link, or check “no link”.");
+
     setBusy(true);
     try {
       // Pre-check the cooldown so we don't burn tokens only to be rejected.
@@ -657,9 +666,9 @@ export default function PixelCanvas() {
         return;
       }
 
-      const trimmedLink = linkInput.trim();
-      // The memo is the on-chain source of truth for region + link.
+      // The memo is the on-chain source of truth for name + region + link.
       const memo = JSON.stringify({
+        name: trimmedName,
         link: trimmedLink || null,
         region: { x: claim.x, y: claim.y, w: claim.w, h: claim.h },
       });
@@ -698,6 +707,7 @@ export default function PixelCanvas() {
           h: claim.h,
           sig: signature,
           owner: publicKey.toBase58(),
+          creator: trimmedName,
           link: trimmedLink || null,
         },
       ];
@@ -945,13 +955,13 @@ export default function PixelCanvas() {
           </div>
 
           <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 13 }}>
-            🔗 Link (optional)
+            ✍️ Your name <span style={{ color: "#e0245e" }}>*</span>
             <input
-              type="url"
-              inputMode="url"
-              placeholder="https://your-site.com"
-              value={linkInput}
-              onChange={(e) => setLinkInput(e.target.value)}
+              type="text"
+              placeholder="e.g. satoshi"
+              maxLength={40}
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
               style={{
                 padding: "8px 10px",
                 borderRadius: 6,
@@ -959,9 +969,34 @@ export default function PixelCanvas() {
                 fontSize: 13,
               }}
             />
-            <small style={{ opacity: 0.6 }}>
-              Visitors who click your area open this URL.
-            </small>
+          </label>
+
+          <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 13 }}>
+            🔗 Link
+            <input
+              type="url"
+              inputMode="url"
+              placeholder="https://your-site.com"
+              value={linkInput}
+              disabled={noLink}
+              onChange={(e) => setLinkInput(e.target.value)}
+              style={{
+                padding: "8px 10px",
+                borderRadius: 6,
+                border: "1px solid #ddd",
+                fontSize: 13,
+                background: noLink ? "#f1f1f4" : "#fff",
+                color: noLink ? "#aaa" : "#222",
+              }}
+            />
+            <label style={{ display: "flex", alignItems: "center", gap: 6, opacity: 0.8 }}>
+              <input
+                type="checkbox"
+                checked={noLink}
+                onChange={(e) => setNoLink(e.target.checked)}
+              />
+              I don&rsquo;t want to add a link
+            </label>
           </label>
 
           <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
@@ -1009,24 +1044,23 @@ export default function PixelCanvas() {
                 rel="noopener noreferrer"
                 style={{ fontSize: 12, color: "#9945FF", fontWeight: 600 }}
               >
-                View burn tx on Explorer ↗
+                View burn tx on Solscan ↗
               </a>
             )}
           </div>
         </aside>
 
         {/* canvas */}
-        <div ref={wrapRef} style={{ flex: 1, position: "relative", overflow: "hidden", background: "#f3f3f3" }}>
+        <div
+          ref={wrapRef}
+          onMouseLeave={clearTooltip}
+          style={{ flex: 1, position: "relative", overflow: "hidden", background: "#f3f3f3" }}
+        >
           <canvas
             ref={canvasRef}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
-            onPointerLeave={() => {
-              // keep linked tooltips so the user can move onto them and click;
-              // they clear themselves on mouse-leave.
-              if (tooltip && !tooltip.info.link) clearTooltip();
-            }}
             onWheel={onWheel}
             style={{
               width: "100%",
@@ -1044,7 +1078,6 @@ export default function PixelCanvas() {
           />
           {tooltip && (
             <div
-              onMouseLeave={clearTooltip}
               style={{
                 position: "absolute",
                 left: tooltip.x + 12,
@@ -1056,11 +1089,14 @@ export default function PixelCanvas() {
                 color: "#fff",
                 fontSize: 12,
                 lineHeight: 1.6,
-                pointerEvents: tooltip.info.link ? "auto" : "none",
+                pointerEvents: "auto",
                 zIndex: 10,
               }}
             >
-              <div style={{ color: "#14F195", fontWeight: 700 }}>
+              <div style={{ fontWeight: 700 }}>
+                {tooltip.info.creator || "Anonymous"}
+              </div>
+              <div style={{ color: "#14F195", fontWeight: 600, fontSize: 11 }}>
                 ⛓ Eternalized on-chain
               </div>
               {tooltip.info.link && (
@@ -1087,12 +1123,7 @@ export default function PixelCanvas() {
                   href={explorerTxUrl(tooltip.info.sig)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{
-                    display: "block",
-                    color: "#c9b3ff",
-                    textDecoration: "none",
-                    pointerEvents: tooltip.info.link ? "auto" : "none",
-                  }}
+                  style={{ display: "block", color: "#c9b3ff", textDecoration: "underline" }}
                 >
                   burn tx: {short(tooltip.info.sig)} ↗
                 </a>

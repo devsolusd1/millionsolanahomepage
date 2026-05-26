@@ -14,6 +14,7 @@ export async function GET() {
         signature: true,
         wallet: true,
         link: true,
+        creator: true,
         rx: true,
         ry: true,
         rw: true,
@@ -29,6 +30,7 @@ export async function GET() {
     h: b.rh,
     sig: b.signature,
     owner: b.wallet,
+    creator: b.creator,
     link: b.link,
   }));
 

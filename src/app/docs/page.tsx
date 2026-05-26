@@ -174,7 +174,7 @@ export default function DocsPage() {
             including you. If you try to place on a pixel someone already owns, the
             placement is rejected before you burn. First to paint a pixel owns it
             for good. Hover any painted area to see the burn transaction that
-            eternalized it, and click to open it on the Solana Explorer — every
+            eternalized it, and click to open it on Solscan — every
             pixel is verifiably on-chain.
           </p>
         </Section>

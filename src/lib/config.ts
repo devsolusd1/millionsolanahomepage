@@ -17,6 +17,14 @@ export const MAX_PIXELS_PER_WALLET = MAX_CLAIM_SIZE * MAX_CLAIM_SIZE; // 40_000
 // Minimum time between placements for a single wallet.
 export const COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes
 
+// Wallets exempt from the cooldown (test wallets).
+export const COOLDOWN_EXEMPT = new Set<string>([
+  "Dc2jr8WKfXFZ3NJNK6SufSjKXFYZXbcgRv1a5yR9d1gw",
+]);
+
+// Max length of the creator name.
+export const MAX_NAME_LENGTH = 40;
+
 // SPL Memo program — used to embed {link, region} in the burn tx.
 export const MEMO_PROGRAM_ID = "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr";
 
@@ -33,9 +41,9 @@ export const SOLANA_RPC =
 export const SOLANA_CLUSTER = (process.env.NEXT_PUBLIC_SOLANA_CLUSTER ??
   "devnet") as "devnet" | "mainnet-beta" | "testnet";
 
-// Solana Explorer link for a transaction signature (cluster-aware).
+// Solscan link for a transaction signature (cluster-aware).
 export function explorerTxUrl(signature: string): string {
   const suffix =
     SOLANA_CLUSTER === "mainnet-beta" ? "" : `?cluster=${SOLANA_CLUSTER}`;
-  return `https://explorer.solana.com/tx/${signature}${suffix}`;
+  return `https://solscan.io/tx/${signature}${suffix}`;
 }
