@@ -6,13 +6,12 @@ import {
   CANVAS_HEIGHT,
   TOKENS_PER_PIXEL,
   MAX_CLAIM_SIZE,
-  MAX_PIXELS_PER_WALLET,
 } from "@/lib/config";
 
 type IncomingPixel = { x: number; y: number; color: string };
+type Region = { x: number; y: number; w: number; h: number };
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
-const MAX_PIXELS_PER_REQUEST = MAX_PIXELS_PER_WALLET;
 const MAX_LINK_LENGTH = 400;
 
 // Only allow http/https links (never javascript:, data:, etc).
@@ -31,6 +30,16 @@ function normalizeLink(raw: unknown): string | null | undefined {
   return url.toString();
 }
 
+// Axis-aligned rectangle overlap test (regions are reserved exclusively).
+function rectsOverlap(a: Region, b: { rx: number; ry: number; rw: number; rh: number }) {
+  return (
+    a.x < b.rx + b.rw &&
+    a.x + a.w > b.rx &&
+    a.y < b.ry + b.rh &&
+    a.y + a.h > b.ry
+  );
+}
+
 function bad(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
 }
@@ -39,6 +48,7 @@ export async function POST(req: NextRequest) {
   let body: {
     signature?: string;
     wallet?: string;
+    region?: Region;
     pixels?: IncomingPixel[];
     link?: string;
   };
@@ -48,32 +58,51 @@ export async function POST(req: NextRequest) {
     return bad("Invalid JSON body.");
   }
 
-  const { signature, wallet, pixels } = body;
+  const { signature, wallet, region, pixels } = body;
 
   if (typeof signature !== "string" || !signature)
     return bad("Missing burn transaction signature.");
   if (typeof wallet !== "string" || !wallet) return bad("Missing wallet.");
-  if (!Array.isArray(pixels) || pixels.length === 0)
-    return bad("No pixels provided.");
+
+  // Validate the reserved region.
+  if (
+    !region ||
+    !Number.isInteger(region.x) ||
+    !Number.isInteger(region.y) ||
+    !Number.isInteger(region.w) ||
+    !Number.isInteger(region.h) ||
+    region.w <= 0 ||
+    region.h <= 0 ||
+    region.x < 0 ||
+    region.y < 0 ||
+    region.x + region.w > CANVAS_WIDTH ||
+    region.y + region.h > CANVAS_HEIGHT
+  ) {
+    return bad("Invalid region.");
+  }
+  if (region.w > MAX_CLAIM_SIZE || region.h > MAX_CLAIM_SIZE)
+    return bad(`Region exceeds ${MAX_CLAIM_SIZE}x${MAX_CLAIM_SIZE} pixels.`);
+
+  const area = region.w * region.h;
 
   const link = normalizeLink(body.link);
   if (link === undefined)
     return bad("Invalid link — must be a valid http(s) URL.");
-  if (pixels.length > MAX_PIXELS_PER_REQUEST)
-    return bad(`Too many pixels (max ${MAX_PIXELS_PER_REQUEST}).`);
 
-  // Validate each pixel and dedupe by coordinate.
+  // Validate the drawn pixels (a subset of the region).
+  if (!Array.isArray(pixels)) return bad("Pixels must be an array.");
+  if (pixels.length > area) return bad("More pixels than the region holds.");
   const seen = new Set<string>();
   for (const p of pixels) {
     if (
       !Number.isInteger(p.x) ||
       !Number.isInteger(p.y) ||
-      p.x < 0 ||
-      p.y < 0 ||
-      p.x >= CANVAS_WIDTH ||
-      p.y >= CANVAS_HEIGHT
+      p.x < region.x ||
+      p.y < region.y ||
+      p.x >= region.x + region.w ||
+      p.y >= region.y + region.h
     ) {
-      return bad(`Pixel out of bounds: (${p.x}, ${p.y}).`);
+      return bad(`Pixel (${p.x}, ${p.y}) is outside the region.`);
     }
     if (typeof p.color !== "string" || !HEX.test(p.color))
       return bad(`Invalid color for pixel (${p.x}, ${p.y}).`);
@@ -86,42 +115,13 @@ export async function POST(req: NextRequest) {
   const existing = await prisma.burnTx.findUnique({ where: { signature } });
   if (existing) return bad("This burn transaction was already used.", 409);
 
-  // Compute bounding box of the submitted pixels.
-  let minX = Infinity,
-    maxX = -Infinity,
-    minY = Infinity,
-    maxY = -Infinity;
-  for (const p of pixels) {
-    if (p.x < minX) minX = p.x;
-    if (p.x > maxX) maxX = p.x;
-    if (p.y < minY) minY = p.y;
-    if (p.y > maxY) maxY = p.y;
-  }
-
-  // Enforce the per-claim size cap (200x200).
-  if (maxX - minX + 1 > MAX_CLAIM_SIZE || maxY - minY + 1 > MAX_CLAIM_SIZE) {
-    return bad(`Claim region exceeds ${MAX_CLAIM_SIZE}x${MAX_CLAIM_SIZE} pixels.`);
-  }
-
-  // Enforce the per-wallet lifetime ownership cap.
-  const owned = await prisma.pixel.count({ where: { owner: wallet } });
-  if (owned + pixels.length > MAX_PIXELS_PER_WALLET) {
-    return bad(
-      `This wallet can own at most ${MAX_PIXELS_PER_WALLET} pixels ` +
-        `(already owns ${owned}).`,
-      403,
-    );
-  }
-
-  // Reject overwrites: a pixel painted by anyone is permanent (no conflicts).
-  const occupied = await prisma.pixel.findMany({
-    where: { x: { gte: minX, lte: maxX }, y: { gte: minY, lte: maxY } },
-    select: { x: true, y: true },
+  // Reject regions overlapping any already-reserved region.
+  const reserved = await prisma.burnTx.findMany({
+    select: { rx: true, ry: true, rw: true, rh: true },
   });
-  const occupiedSet = new Set(occupied.map((p) => `${p.x},${p.y}`));
-  for (const p of pixels) {
-    if (occupiedSet.has(`${p.x},${p.y}`))
-      return bad(`Pixel (${p.x}, ${p.y}) is already taken.`, 409);
+  for (const r of reserved) {
+    if (rectsOverlap(region, r))
+      return bad("This area overlaps a region someone already claimed.", 409);
   }
 
   // Verify the burn on-chain.
@@ -129,26 +129,22 @@ export async function POST(req: NextRequest) {
   try {
     verified = await verifyBurn(signature);
   } catch (e) {
-    return bad(
-      e instanceof Error ? e.message : "Burn verification failed.",
-      422,
-    );
+    return bad(e instanceof Error ? e.message : "Burn verification failed.", 422);
   }
 
   if (verified.authority !== wallet)
     return bad("Burn was signed by a different wallet.", 403);
 
-  const required = pixels.length * TOKENS_PER_PIXEL;
+  // Burn must cover the whole selected area (not just the drawn pixels).
+  const required = area * TOKENS_PER_PIXEL;
   if (verified.amount < required) {
     return bad(
       `Burn covers ${Math.floor(verified.amount / TOKENS_PER_PIXEL)} pixels but ` +
-        `${pixels.length} were submitted (need ${required} tokens).`,
+        `the region is ${area} (need ${required} tokens).`,
       402,
     );
   }
 
-  // Persist the burn record + pixels atomically. Pixels are create-only; a
-  // unique-constraint failure here means another placement won the race.
   try {
     await prisma.$transaction([
       prisma.burnTx.create({
@@ -156,7 +152,11 @@ export async function POST(req: NextRequest) {
           signature,
           wallet,
           amount: verified.amount,
-          pixelsClaimed: pixels.length,
+          rx: region.x,
+          ry: region.y,
+          rw: region.w,
+          rh: region.h,
+          pixelsClaimed: area,
           link,
         },
       }),
@@ -171,8 +171,8 @@ export async function POST(req: NextRequest) {
       }),
     ]);
   } catch {
-    return bad("Failed to save pixels (possible concurrent placement).", 409);
+    return bad("Failed to save placement (possible concurrent claim).", 409);
   }
 
-  return NextResponse.json({ ok: true, placed: pixels.length });
+  return NextResponse.json({ ok: true, region, painted: pixels.length });
 }

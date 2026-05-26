@@ -21,8 +21,18 @@ import {
   explorerTxUrl,
 } from "@/lib/config";
 
-type Placement = { sig: string; owner: string; link: string | null };
+type Region = {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  sig: string;
+  owner: string;
+  link: string | null;
+};
 const short = (s: string) => `${s.slice(0, 4)}…${s.slice(-4)}`;
+const rectsOverlap = (a: Rect, b: Region) =>
+  a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 import { burnForPixels } from "@/lib/burn";
 
 type Tool = "select" | "draw" | "line" | "rect" | "ellipse" | "erase" | "image" | "pan";
@@ -73,32 +83,32 @@ export default function PixelCanvas() {
   // Link to attach to this placement, and per-committed-pixel placement info
   // (burn tx, owner, optional link) so we can prove on-chain provenance.
   const [linkInput, setLinkInput] = useState("");
-  const infoRef = useRef<Map<string, Placement>>(new Map());
-  const [tooltip, setTooltip] = useState<{ x: number; y: number; info: Placement } | null>(null);
+  const regionsRef = useRef<Region[]>([]);
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; info: Region } | null>(null);
+  const tooltipSigRef = useRef<string | null>(null);
   const downPosRef = useRef<{ x: number; y: number } | null>(null);
   const [lastTx, setLastTx] = useState<string | null>(null);
 
-  const pendingCount = pending.size;
-  const cost = pendingCount * TOKENS_PER_PIXEL;
+  // Find the reserved region containing a board pixel (for tooltip/click/overlap).
+  const regionAt = (px: number, py: number): Region | undefined =>
+    regionsRef.current.find(
+      (r) => px >= r.x && py >= r.y && px < r.x + r.w && py < r.y + r.h,
+    );
+
+  const drawnCount = pending.size;
+  const claimArea = claim ? claim.w * claim.h : 0;
+  const cost = claimArea * TOKENS_PER_PIXEL;
 
   // ---- load committed pixels ----
   const loadCanvas = useCallback(async () => {
     const res = await fetch("/api/canvas", { cache: "no-store" });
     const data = await res.json();
     const map = new Map<string, string>();
-    const info = new Map<string, Placement>();
-    const placements = (data.placements ?? []) as Placement[];
-    for (const p of data.pixels as {
-      x: number;
-      y: number;
-      color: string;
-      g: number;
-    }[]) {
+    for (const p of data.pixels as { x: number; y: number; color: string }[]) {
       map.set(keyOf(p.x, p.y), p.color);
-      if (p.g >= 0 && placements[p.g]) info.set(keyOf(p.x, p.y), placements[p.g]);
     }
     committed.current = map;
-    infoRef.current = info;
+    regionsRef.current = (data.regions ?? []) as Region[];
     draw();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -154,6 +164,13 @@ export default function PixelCanvas() {
       }
     }
 
+    // reserved regions — faint border so claimed (even unpainted) areas show
+    for (const r of regionsRef.current) {
+      ctx.strokeStyle = "rgba(91,59,255,0.35)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(ox + r.x * scale, oy + r.y * scale, r.w * scale, r.h * scale);
+    }
+
     // grid lines when zoomed in enough
     if (scale >= 6) {
       ctx.strokeStyle = "#ededed";
@@ -193,18 +210,19 @@ export default function PixelCanvas() {
       ctx.globalAlpha = 1;
     }
 
-    // claimed region outline + the in-progress selection
+    // claimed region outline + the in-progress selection (red if overlapping)
     const previewRect = selectingRef.current ?? claim;
     if (previewRect) {
       const isLive = !!selectingRef.current;
-      ctx.fillStyle = "rgba(91,59,255,0.08)";
+      const invalid = regionsRef.current.some((r) => rectsOverlap(previewRect, r));
+      ctx.fillStyle = invalid ? "rgba(255,0,68,0.10)" : "rgba(91,59,255,0.08)";
       ctx.fillRect(
         ox + previewRect.x * scale,
         oy + previewRect.y * scale,
         previewRect.w * scale,
         previewRect.h * scale,
       );
-      ctx.strokeStyle = isLive ? "#5b3bff" : "#14b87a";
+      ctx.strokeStyle = invalid ? "#ff0044" : isLive ? "#5b3bff" : "#14b87a";
       ctx.setLineDash(isLive ? [6, 4] : []);
       ctx.lineWidth = 2;
       ctx.strokeRect(
@@ -459,19 +477,28 @@ export default function PixelCanvas() {
     }
 
     // Not dragging: show a tooltip when hovering any painted (on-chain) area.
+    // Keep it stable while hovering the same placement so its links are clickable.
     const { x, y } = toPixel(e.clientX, e.clientY);
-    const info = infoRef.current.get(keyOf(x, y));
+    const info = regionAt(x, y);
     if (info) {
-      const wrap = wrapRef.current;
-      const r = wrap?.getBoundingClientRect();
-      setTooltip({
-        x: e.clientX - (r?.left ?? 0),
-        y: e.clientY - (r?.top ?? 0),
-        info,
-      });
-    } else if (tooltip) {
+      if (tooltipSigRef.current !== info.sig) {
+        const r = wrapRef.current?.getBoundingClientRect();
+        setTooltip({
+          x: e.clientX - (r?.left ?? 0),
+          y: e.clientY - (r?.top ?? 0),
+          info,
+        });
+        tooltipSigRef.current = info.sig;
+      }
+    } else if (tooltipSigRef.current !== null) {
       setTooltip(null);
+      tooltipSigRef.current = null;
     }
+  };
+
+  const clearTooltip = () => {
+    setTooltip(null);
+    tooltipSigRef.current = null;
   };
 
   const onPointerUp = (e: React.PointerEvent) => {
@@ -481,7 +508,7 @@ export default function PixelCanvas() {
     downPosRef.current = null;
     if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 5) {
       const { x, y } = toPixel(e.clientX, e.clientY);
-      const info = infoRef.current.get(keyOf(x, y));
+      const info = regionAt(x, y);
       if (info) {
         // cancel any in-progress selection/draw started by this click
         selectingRef.current = null;
@@ -498,16 +525,23 @@ export default function PixelCanvas() {
     }
 
     if (tool === "select" && selectingRef.current) {
-      // finalize claim; keep the start anchor for a click (1x1) selection
       const sel = selectingRef.current;
       selectingRef.current = null;
       anchorRef.current = null;
       dragging.current = false;
+      (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
+      if (regionsRef.current.some((r) => rectsOverlap(sel, r))) {
+        setStatus("That area overlaps a region someone already claimed. Pick empty space.");
+        draw();
+        return;
+      }
       setClaim(sel);
       setPending(new Map());
       setTool("draw");
-      setStatus(`Region claimed: ${sel.w}×${sel.h} px. Now draw inside it.`);
-      (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
+      const area = sel.w * sel.h;
+      setStatus(
+        `Region claimed: ${sel.w}×${sel.h} = ${area} px · costs ${area * TOKENS_PER_PIXEL} $SOLANAHP.`,
+      );
       return;
     }
     if (isShapeTool && shapePixelsRef.current) {
@@ -607,19 +641,20 @@ export default function PixelCanvas() {
   const commit = async () => {
     if (!connected || !publicKey) return setStatus("Connect your wallet first.");
     if (!TOKEN_MINT) return setStatus("Token mint not configured on the server.");
-    if (pendingCount === 0) return setStatus("Nothing to place.");
+    if (!claim) return setStatus("Claim a region first.");
 
     setBusy(true);
     try {
-      setStatus(`Burning ${cost} tokens for ${pendingCount} pixels...`);
+      setStatus(`Burning ${cost} $SOLANAHP for your ${claim.w}×${claim.h} region...`);
+      // Burn covers the whole selected area, not just what you drew.
       const signature = await burnForPixels(
         connection,
         publicKey,
-        pendingCount,
+        claimArea,
         (tx, conn) => sendTransaction(tx, conn),
       );
 
-      setStatus("Burn confirmed. Saving pixels...");
+      setStatus("Burn confirmed. Saving your region...");
       const pixels = Array.from(pending.entries()).map(([k, c]) => {
         const [x, y] = k.split(",").map(Number);
         return { x, y, color: c };
@@ -632,26 +667,33 @@ export default function PixelCanvas() {
         body: JSON.stringify({
           signature,
           wallet: publicKey.toBase58(),
+          region: { x: claim.x, y: claim.y, w: claim.w, h: claim.h },
           pixels,
           link: trimmedLink || undefined,
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed to place pixels.");
+      if (!res.ok) throw new Error(data.error ?? "Failed to place region.");
 
-      const placement: Placement = {
-        sig: signature,
-        owner: publicKey.toBase58(),
-        link: trimmedLink || null,
-      };
-      for (const [k, c] of pending) {
-        committed.current.set(k, c);
-        infoRef.current.set(k, placement);
-      }
+      for (const [k, c] of pending) committed.current.set(k, c);
+      regionsRef.current = [
+        ...regionsRef.current,
+        {
+          x: claim.x,
+          y: claim.y,
+          w: claim.w,
+          h: claim.h,
+          sig: signature,
+          owner: publicKey.toBase58(),
+          link: trimmedLink || null,
+        },
+      ];
       setPending(new Map());
       setLinkInput("");
+      setClaim(null);
+      setTool("select");
       setLastTx(signature);
-      setStatus(`Placed ${data.placed} pixels — eternalized on-chain forever.`);
+      setStatus(`Region placed — eternalized on-chain forever.`);
       draw();
     } catch (e) {
       setStatus(e instanceof Error ? e.message : "Something went wrong.");
@@ -713,7 +755,7 @@ export default function PixelCanvas() {
             whiteSpace: "nowrap",
           }}
         >
-          1 PX = {TOKENS_PER_PIXEL} $PIXEL
+          1 PX = {TOKENS_PER_PIXEL} $SOLANAHP
         </span>
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>
           <TokenAddress />
@@ -911,28 +953,30 @@ export default function PixelCanvas() {
 
           <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
             <div style={{ fontSize: 13, lineHeight: 1.6 }}>
-              Pending: <strong>{pendingCount}</strong> px
+              Region: <strong>{claim ? `${claim.w}×${claim.h} = ${claimArea}` : 0}</strong> px
               <br />
-              Cost: <strong>{cost}</strong> tokens
+              Drawn: <strong>{drawnCount}</strong> px
+              <br />
+              Cost: <strong>{cost}</strong> $SOLANAHP <span style={{ opacity: 0.6 }}>(whole region)</span>
             </div>
             <button
               onClick={() => setPending(new Map())}
-              disabled={pendingCount === 0 || busy}
-              style={btn(false, pendingCount === 0 || busy)}
+              disabled={drawnCount === 0 || busy}
+              style={btn(false, drawnCount === 0 || busy)}
             >
               Clear drawing
             </button>
             <button
               onClick={commit}
-              disabled={busy || pendingCount === 0}
+              disabled={busy || !claim}
               style={{
                 padding: "11px 0",
                 borderRadius: 4,
                 border: "none",
-                background: busy || pendingCount === 0 ? "#bbb" : "#14b87a",
+                background: busy || !claim ? "#bbb" : "#14b87a",
                 color: "#fff",
                 fontWeight: 700,
-                cursor: busy || pendingCount === 0 ? "default" : "pointer",
+                cursor: busy || !claim ? "default" : "pointer",
               }}
             >
               {busy ? "Working..." : "Burn & Place"}
@@ -965,7 +1009,11 @@ export default function PixelCanvas() {
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
-            onPointerLeave={() => tooltip && setTooltip(null)}
+            onPointerLeave={() => {
+              // keep linked tooltips so the user can move onto them and click;
+              // they clear themselves on mouse-leave.
+              if (tooltip && !tooltip.info.link) clearTooltip();
+            }}
             onWheel={onWheel}
             style={{
               width: "100%",
@@ -983,33 +1031,35 @@ export default function PixelCanvas() {
           />
           {tooltip && (
             <div
+              onMouseLeave={clearTooltip}
               style={{
                 position: "absolute",
                 left: tooltip.x + 12,
                 top: tooltip.y + 12,
                 maxWidth: 300,
-                padding: "7px 10px",
+                padding: "8px 11px",
                 borderRadius: 6,
-                background: "rgba(20,20,30,0.93)",
+                background: "rgba(20,20,30,0.95)",
                 color: "#fff",
                 fontSize: 12,
-                lineHeight: 1.5,
-                pointerEvents: "none",
+                lineHeight: 1.6,
+                pointerEvents: tooltip.info.link ? "auto" : "none",
                 zIndex: 10,
               }}
             >
               <div style={{ color: "#14F195", fontWeight: 700 }}>
                 ⛓ Eternalized on-chain
               </div>
-              {tooltip.info.sig && (
-                <div style={{ opacity: 0.85 }}>
-                  burn tx: {short(tooltip.info.sig)}
-                </div>
-              )}
               {tooltip.info.link && (
-                <div
+                <a
+                  href={tooltip.info.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   style={{
-                    opacity: 0.85,
+                    display: "block",
+                    color: "#7cc4ff",
+                    textDecoration: "underline",
+                    fontWeight: 600,
                     maxWidth: 280,
                     overflow: "hidden",
                     textOverflow: "ellipsis",
@@ -1017,11 +1067,23 @@ export default function PixelCanvas() {
                   }}
                 >
                   🔗 {tooltip.info.link}
-                </div>
+                </a>
               )}
-              <div style={{ opacity: 0.55, marginTop: 2 }}>
-                click to {tooltip.info.link ? "open link" : "view tx"}
-              </div>
+              {tooltip.info.sig && (
+                <a
+                  href={explorerTxUrl(tooltip.info.sig)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "block",
+                    color: "#c9b3ff",
+                    textDecoration: "none",
+                    pointerEvents: tooltip.info.link ? "auto" : "none",
+                  }}
+                >
+                  burn tx: {short(tooltip.info.sig)} ↗
+                </a>
+              )}
             </div>
           )}
         </div>
@@ -1041,11 +1103,15 @@ export default function PixelCanvas() {
       >
         <span>The Million Solana Homepage</span>
         <span style={{ opacity: 0.4 }}>·</span>
+        <Link href="/gallery" style={{ color: "#9945FF", fontWeight: 600 }}>
+          Gallery
+        </Link>
+        <span style={{ opacity: 0.4 }}>·</span>
         <Link href="/docs" style={{ color: "#9945FF", fontWeight: 600 }}>
           How it works / Docs
         </Link>
         <span style={{ marginLeft: "auto", opacity: 0.7 }}>
-          Burn $PIXEL to own pixels forever.
+          Burn $SOLANAHP to own pixels forever.
         </span>
       </footer>
     </div>

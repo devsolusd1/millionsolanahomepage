@@ -23,15 +23,21 @@ model Pixel {
   @@index([owner])
 }
 
-// A verified burn transaction. Acts as proof + ledger of how many pixels it bought.
+// A verified burn that reserves a rectangular region of the canvas.
+// The whole region is owned (and paid for) even if not fully painted.
 model BurnTx {
   signature      String   @id
   wallet         String
-  // Total tokens burned in this tx.
+  // Total tokens burned in this tx (== region area * TOKENS_PER_PIXEL).
   amount         Int
-  // Pixels this burn entitled the user to (amount / TOKENS_PER_PIXEL).
+  // Reserved region rectangle.
+  rx             Int
+  ry             Int
+  rw             Int
+  rh             Int
+  // Region area in pixels (rw * rh).
   pixelsClaimed  Int
-  // Optional URL the painted area links to (http/https only).
+  // Optional URL the region links to (http/https only).
   link           String?
   createdAt      DateTime @default(now())
 

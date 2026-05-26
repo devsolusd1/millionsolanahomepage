@@ -9,7 +9,8 @@
     "lint": "eslint",
     "postinstall": "prisma generate",
     "create-token": "tsx scripts/create-token.ts",
-    "send-tokens": "tsx scripts/send-tokens.ts"
+    "send-tokens": "tsx scripts/send-tokens.ts",
+    "reset-canvas": "tsx scripts/reset-canvas.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

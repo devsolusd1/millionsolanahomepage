@@ -22,7 +22,7 @@ import SolanaProvider from "@/components/SolanaProvider";
 
 export const metadata: Metadata = {
   title: "Million Solana Homepage",
-  description: "Burn $PIXEL tokens to own pixels forever on a shared canvas.",
+  description: "Burn $SOLANAHP tokens to own pixels forever on a shared canvas.",
 };
 
 export default function RootLayout({
