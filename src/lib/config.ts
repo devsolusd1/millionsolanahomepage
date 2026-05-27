@@ -49,10 +49,9 @@ export const SOLANA_RPC =
 export const SOLANA_CLUSTER = (process.env.NEXT_PUBLIC_SOLANA_CLUSTER ??
   "devnet") as "devnet" | "mainnet-beta" | "testnet";
 
-// Pre-launch gate: when true, the home page shows a "coming soon" screen.
-// Set NEXT_PUBLIC_COMING_SOON="false" at launch.
-export const COMING_SOON =
-  (process.env.NEXT_PUBLIC_COMING_SOON ?? "true") !== "false";
+// Optional pre-launch gate: the site is live by default. Set
+// NEXT_PUBLIC_COMING_SOON="true" to show a "coming soon" screen instead.
+export const COMING_SOON = process.env.NEXT_PUBLIC_COMING_SOON === "true";
 
 // Solscan link for a transaction signature (cluster-aware).
 export function explorerTxUrl(signature: string): string {
