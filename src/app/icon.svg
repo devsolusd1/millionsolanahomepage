@@ -1,12 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
-  <circle cx="128" cy="128" r="126" fill="#ffffff"/>
-  <g>
-    <rect x="114" y="64" width="26" height="26" fill="#7C3AED"/>
-    <rect x="148" y="64" width="26" height="26" fill="#7C3AED"/>
-    <rect x="80" y="113" width="26" height="26" fill="#14F195"/>
-    <rect x="114" y="113" width="26" height="26" fill="#14F195"/>
-    <rect x="80" y="166" width="26" height="26" fill="#14F195"/>
-    <rect x="114" y="166" width="26" height="26" fill="#14F195"/>
-    <rect x="148" y="166" width="26" height="26" fill="#14F195"/>
-  </g>
+  <!-- black pixel drop-shadow -->
+  <path d="M80 52 H176 V70 H204 V186 H176 V204 H80 V186 H52 V70 H80 Z"
+    transform="translate(9,9)" fill="none" stroke="#0A0A0A" stroke-width="16" stroke-linejoin="miter"/>
+  <!-- blue frame -->
+  <path d="M80 52 H176 V70 H204 V186 H176 V204 H80 V186 H52 V70 H80 Z"
+    fill="none" stroke="#2B4DFF" stroke-width="16" stroke-linejoin="miter"/>
+  <!-- descending blocks: two rows blue, bottom row black -->
+  <rect x="118" y="100" width="16" height="16" fill="#2B4DFF"/>
+  <rect x="140" y="100" width="16" height="16" fill="#2B4DFF"/>
+  <rect x="106" y="124" width="16" height="16" fill="#2B4DFF"/>
+  <rect x="128" y="124" width="16" height="16" fill="#2B4DFF"/>
+  <rect x="94" y="148" width="16" height="16" fill="#0A0A0A"/>
+  <rect x="116" y="148" width="16" height="16" fill="#0A0A0A"/>
+  <rect x="138" y="148" width="16" height="16" fill="#0A0A0A"/>
 </svg>

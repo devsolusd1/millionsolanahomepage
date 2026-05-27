@@ -19,7 +19,7 @@ type Placement = {
 };
 
 const short = (s: string) => `${s.slice(0, 4)}…${s.slice(-4)}`;
-const PURPLE = "#9945FF";
+const PURPLE = "#2B4DFF";
 
 function Thumb({ pixels, bbox }: { pixels: Pixel[]; bbox: Bbox | null }) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -83,7 +83,7 @@ export default function GalleryPage() {
           alignItems: "center",
           padding: "14px 20px",
           borderBottom: "1px solid #ececf0",
-          boxShadow: "0 2px 0 0 rgba(153,69,255,0.12)",
+          boxShadow: "0 2px 0 0 rgba(43,77,255,0.12)",
         }}
       >
         <Brand size={15} />
@@ -109,10 +109,7 @@ export default function GalleryPage() {
             fontFamily: "var(--font-pixel)",
             fontSize: 20,
             lineHeight: 1.4,
-            backgroundImage: "linear-gradient(90deg, #9945FF, #14F195)",
-            WebkitBackgroundClip: "text",
-            backgroundClip: "text",
-            color: "transparent",
+            color: "#2B4DFF",
           }}
         >
           Gallery

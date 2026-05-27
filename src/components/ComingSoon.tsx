@@ -23,10 +23,7 @@ export default function ComingSoon() {
           fontSize: 34,
           lineHeight: 1.3,
           margin: 0,
-          backgroundImage: "linear-gradient(90deg, #9945FF, #14F195)",
-          WebkitBackgroundClip: "text",
-          backgroundClip: "text",
-          color: "transparent",
+          color: "#2B4DFF",
         }}
       >
         Coming soon
@@ -59,7 +56,7 @@ export default function ComingSoon() {
             padding: "11px 22px",
             borderRadius: 8,
             border: "1px solid #d9d9e0",
-            color: "#9945FF",
+            color: "#2B4DFF",
             fontWeight: 700,
             fontSize: 15,
           }}

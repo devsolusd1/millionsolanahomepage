@@ -1,32 +1,42 @@
 import Link from "next/link";
 
-const PURPLE = "#9945FF";
-const TEAL = "#19FB9B";
-const GREEN = "#14F195";
+const BLUE = "#2B4DFF";
+const INK = "#111111";
 
-// Tiny pixel-art mark: three slanted blocks echoing the Solana logo.
-function PixelMark({ cell }: { cell: number }) {
-  const grid: (string | null)[] = [
-    null, PURPLE, PURPLE,
-    null, null, null,
-    TEAL, TEAL, null,
-    null, null, null,
-    GREEN, GREEN, GREEN,
-  ];
+// Pixel-frame logo: a blue notched frame with a black drop-shadow and the
+// descending blocks (two blue rows, one black row).
+function LogoMark({ px }: { px: number }) {
   return (
-    <div
+    <svg
+      width={px}
+      height={px}
+      viewBox="0 0 256 256"
       aria-hidden
-      style={{
-        display: "grid",
-        gridTemplateColumns: `repeat(3, ${cell}px)`,
-        gridTemplateRows: `repeat(5, ${cell}px)`,
-        gap: 1,
-      }}
+      style={{ display: "block", flexShrink: 0 }}
     >
-      {grid.map((c, i) => (
-        <span key={i} style={{ background: c ?? "transparent", display: "block" }} />
-      ))}
-    </div>
+      <path
+        d="M80 52 H176 V70 H204 V186 H176 V204 H80 V186 H52 V70 H80 Z"
+        transform="translate(9,9)"
+        fill="none"
+        stroke="#0A0A0A"
+        strokeWidth="16"
+        strokeLinejoin="miter"
+      />
+      <path
+        d="M80 52 H176 V70 H204 V186 H176 V204 H80 V186 H52 V70 H80 Z"
+        fill="none"
+        stroke={BLUE}
+        strokeWidth="16"
+        strokeLinejoin="miter"
+      />
+      <rect x="118" y="100" width="16" height="16" fill={BLUE} />
+      <rect x="140" y="100" width="16" height="16" fill={BLUE} />
+      <rect x="106" y="124" width="16" height="16" fill={BLUE} />
+      <rect x="128" y="124" width="16" height="16" fill={BLUE} />
+      <rect x="94" y="148" width="16" height="16" fill="#0A0A0A" />
+      <rect x="116" y="148" width="16" height="16" fill="#0A0A0A" />
+      <rect x="138" y="148" width="16" height="16" fill="#0A0A0A" />
+    </svg>
   );
 }
 
@@ -41,7 +51,7 @@ export default function Brand({
 }) {
   const inner = (
     <div style={{ display: "flex", alignItems: "center", gap: size * 0.7 }}>
-      <PixelMark cell={Math.round(size * 0.42)} />
+      <LogoMark px={Math.round(size * 2.1)} />
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
         <span
           style={{
@@ -49,14 +59,11 @@ export default function Brand({
             fontSize: size,
             lineHeight: 1.1,
             letterSpacing: 0.5,
-            backgroundImage: `linear-gradient(90deg, ${PURPLE}, ${GREEN})`,
-            WebkitBackgroundClip: "text",
-            backgroundClip: "text",
-            color: "transparent",
             whiteSpace: "nowrap",
           }}
         >
-          MILLION SOLANA
+          <span style={{ color: BLUE }}>MILLION</span>{" "}
+          <span style={{ color: INK }}>SOLANA</span>
         </span>
         {tagline && (
           <span

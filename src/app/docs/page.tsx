@@ -11,7 +11,7 @@ export const metadata = {
   title: "How it works — Million Solana Homepage",
 };
 
-const PURPLE = "#9945FF";
+const PURPLE = "#2B4DFF";
 
 function Section({
   title,
@@ -49,7 +49,7 @@ export default function DocsPage() {
           alignItems: "center",
           padding: "14px 20px",
           borderBottom: "1px solid #ececf0",
-          boxShadow: "0 2px 0 0 rgba(153,69,255,0.12)",
+          boxShadow: "0 2px 0 0 rgba(43,77,255,0.12)",
         }}
       >
         <Brand size={15} />
@@ -86,10 +86,7 @@ export default function DocsPage() {
             fontFamily: "var(--font-pixel)",
             fontSize: 22,
             lineHeight: 1.4,
-            backgroundImage: "linear-gradient(90deg, #9945FF, #14F195)",
-            WebkitBackgroundClip: "text",
-            backgroundClip: "text",
-            color: "transparent",
+            color: "#2B4DFF",
           }}
         >
           How it works
@@ -113,7 +110,7 @@ export default function DocsPage() {
             lineHeight: 1.7,
           }}
         >
-          <strong style={{ color: "#14F195" }}>⛓ Eternalized on-chain.</strong>{" "}
+          <strong style={{ color: "#7AA0FF" }}>⛓ Eternalized on-chain.</strong>{" "}
           Every drawing is backed by a real Solana burn transaction. The tokens
           are destroyed forever and your art — its region, colors and link — is
           permanently recorded on-chain via the transaction memo. Nobody, not even
@@ -211,10 +208,10 @@ export default function DocsPage() {
             marginTop: 48,
             padding: "16px 18px",
             borderRadius: 10,
-            background: "#faf7ff",
-            border: "1px solid #ecdcff",
+            background: "#f1f4ff",
+            border: "1px solid #cdd8ff",
             fontSize: 14,
-            color: "#5a4a7a",
+            color: "#3b4a78",
           }}
         >
           Ready? <Link href="/" style={{ color: PURPLE, fontWeight: 700 }}>Go to the canvas</Link>,

@@ -41,7 +41,7 @@ export default function TokenAddress() {
         style={{
           fontSize: 9,
           letterSpacing: 1,
-          color: "#9945FF",
+          color: "#2B4DFF",
           fontWeight: 700,
         }}
       >
@@ -49,7 +49,7 @@ export default function TokenAddress() {
       </span>
       <span>{deployed ? truncate(TOKEN_MINT) : "not deployed"}</span>
       {deployed && (
-        <span style={{ color: copied ? "#14b87a" : "#999", fontSize: 11 }}>
+        <span style={{ color: copied ? "#2B4DFF" : "#999", fontSize: 11 }}>
           {copied ? "copied!" : "copy"}
         </span>
       )}

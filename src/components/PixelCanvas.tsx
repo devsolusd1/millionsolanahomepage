@@ -173,7 +173,7 @@ export default function PixelCanvas() {
 
     // reserved regions — faint border so claimed (even unpainted) areas show
     for (const r of regionsRef.current) {
-      ctx.strokeStyle = "rgba(91,59,255,0.35)";
+      ctx.strokeStyle = "rgba(43,77,255,0.35)";
       ctx.lineWidth = 1;
       ctx.strokeRect(ox + r.x * scale, oy + r.y * scale, r.w * scale, r.h * scale);
     }
@@ -222,14 +222,14 @@ export default function PixelCanvas() {
     if (previewRect) {
       const isLive = !!selectingRef.current;
       const invalid = regionsRef.current.some((r) => rectsOverlap(previewRect, r));
-      ctx.fillStyle = invalid ? "rgba(255,0,68,0.10)" : "rgba(91,59,255,0.08)";
+      ctx.fillStyle = invalid ? "rgba(255,0,68,0.10)" : "rgba(43,77,255,0.08)";
       ctx.fillRect(
         ox + previewRect.x * scale,
         oy + previewRect.y * scale,
         previewRect.w * scale,
         previewRect.h * scale,
       );
-      ctx.strokeStyle = invalid ? "#ff0044" : isLive ? "#5b3bff" : "#14b87a";
+      ctx.strokeStyle = invalid ? "#ff0044" : isLive ? "#2B4DFF" : "#2B4DFF";
       ctx.setLineDash(isLive ? [6, 4] : []);
       ctx.lineWidth = 2;
       ctx.strokeRect(
@@ -821,7 +821,7 @@ export default function PixelCanvas() {
     padding: "8px 0",
     borderRadius: 4,
     border: "1px solid #cfcfcf",
-    background: active ? "#5b3bff" : "#fff",
+    background: active ? "#2B4DFF" : "#fff",
     color: active ? "#fff" : disabled ? "#bbb" : "#222",
     cursor: disabled ? "not-allowed" : "pointer",
     fontSize: 13,
@@ -837,7 +837,7 @@ export default function PixelCanvas() {
           padding: "12px 20px",
           background: "#fff",
           borderBottom: "1px solid #ececf0",
-          boxShadow: "0 2px 0 0 rgba(153,69,255,0.12)",
+          boxShadow: "0 2px 0 0 rgba(43,77,255,0.12)",
         }}
       >
         <Brand size={15} />
@@ -969,11 +969,11 @@ export default function PixelCanvas() {
               gap: 8,
               padding: 12,
               borderRadius: 8,
-              border: "1px dashed #c9b3ff",
-              background: "#faf7ff",
+              border: "1px dashed #9DB2FF",
+              background: "#f1f4ff",
             }}
           >
-            <span style={{ fontWeight: 700, color: "#5b3bff", fontSize: 13 }}>
+            <span style={{ fontWeight: 700, color: "#2B4DFF", fontSize: 13 }}>
               🖼 Paste a photo
             </span>
             <label
@@ -982,7 +982,7 @@ export default function PixelCanvas() {
                 textAlign: "center",
                 padding: "10px 0",
                 borderRadius: 6,
-                background: "linear-gradient(90deg, #9945FF, #14F195)",
+                background: "#2B4DFF",
                 color: "#fff",
                 fontWeight: 700,
                 fontSize: 13,
@@ -1091,7 +1091,7 @@ export default function PixelCanvas() {
                 padding: "11px 0",
                 borderRadius: 4,
                 border: "none",
-                background: busy || !claim ? "#bbb" : "#14b87a",
+                background: busy || !claim ? "#bbb" : "#2B4DFF",
                 color: "#fff",
                 fontWeight: 700,
                 cursor: busy || !claim ? "default" : "pointer",
@@ -1113,7 +1113,7 @@ export default function PixelCanvas() {
                 href={explorerTxUrl(lastTx)}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ fontSize: 12, color: "#9945FF", fontWeight: 600 }}
+                style={{ fontSize: 12, color: "#2B4DFF", fontWeight: 600 }}
               >
                 View burn tx on Solscan ↗
               </a>
@@ -1180,7 +1180,7 @@ export default function PixelCanvas() {
                 borderRadius: 8,
                 border: "1px solid #d9d9e0",
                 background: "rgba(255,255,255,0.95)",
-                color: "#5b3bff",
+                color: "#2B4DFF",
                 fontSize: 13,
                 fontWeight: 600,
                 cursor: "pointer",
@@ -1211,7 +1211,7 @@ export default function PixelCanvas() {
               <div style={{ fontWeight: 700 }}>
                 {tooltip.info.creator || "Anonymous"}
               </div>
-              <div style={{ color: "#14F195", fontWeight: 600, fontSize: 11 }}>
+              <div style={{ color: "#7AA0FF", fontWeight: 600, fontSize: 11 }}>
                 ⛓ Eternalized on-chain
               </div>
               {tooltip.info.link && (
@@ -1238,7 +1238,7 @@ export default function PixelCanvas() {
                   href={explorerTxUrl(tooltip.info.sig)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ display: "block", color: "#c9b3ff", textDecoration: "underline" }}
+                  style={{ display: "block", color: "#9DB2FF", textDecoration: "underline" }}
                 >
                   burn tx: {short(tooltip.info.sig)} ↗
                 </a>
@@ -1284,10 +1284,7 @@ export default function PixelCanvas() {
               style={{
                 fontFamily: "var(--font-pixel)",
                 fontSize: 13,
-                backgroundImage: "linear-gradient(90deg, #9945FF, #14F195)",
-                WebkitBackgroundClip: "text",
-                backgroundClip: "text",
-                color: "transparent",
+                color: "#2B4DFF",
               }}
             >
               How it works
@@ -1343,7 +1340,7 @@ export default function PixelCanvas() {
                   width: 22,
                   height: 22,
                   borderRadius: "50%",
-                  background: "#5b3bff",
+                  background: "#2B4DFF",
                   color: "#fff",
                   fontWeight: 700,
                   display: "flex",
@@ -1390,7 +1387,7 @@ export default function PixelCanvas() {
               fontSize: 12,
             }}
           >
-            <strong style={{ color: "#14F195" }}>⛓ Eternalized on-chain.</strong>{" "}
+            <strong style={{ color: "#7AA0FF" }}>⛓ Eternalized on-chain.</strong>{" "}
             Every drawing is a real Solana burn tx. Hover any art to see its tx and
             open it on Solscan.
           </div>
@@ -1400,7 +1397,7 @@ export default function PixelCanvas() {
             style={{
               display: "inline-block",
               marginTop: 14,
-              color: "#9945FF",
+              color: "#2B4DFF",
               fontWeight: 600,
             }}
           >
@@ -1424,11 +1421,11 @@ export default function PixelCanvas() {
       >
         <span>The Million Solana Homepage</span>
         <span style={{ opacity: 0.4 }}>·</span>
-        <Link href="/gallery" style={{ color: "#9945FF", fontWeight: 600 }}>
+        <Link href="/gallery" style={{ color: "#2B4DFF", fontWeight: 600 }}>
           Gallery
         </Link>
         <span style={{ opacity: 0.4 }}>·</span>
-        <Link href="/docs" style={{ color: "#9945FF", fontWeight: 600 }}>
+        <Link href="/docs" style={{ color: "#2B4DFF", fontWeight: 600 }}>
           How it works / Docs
         </Link>
         <span style={{ opacity: 0.4 }}>·</span>
