@@ -1433,12 +1433,12 @@ export default function PixelCanvas() {
         </Link>
         <span style={{ opacity: 0.4 }}>·</span>
         <a
-          href="https://x.com/MillionSolHP"
+          href="https://x.com/MillionSolHome"
           target="_blank"
           rel="noopener noreferrer"
           style={{ color: "#1a1a1a", fontWeight: 600 }}
         >
-          𝕏 @MillionSolHP
+          𝕏 @MillionSolHome
         </a>
         <span style={{ marginLeft: "auto", opacity: 0.7 }}>
           Burn $PIXEL to own pixels forever.

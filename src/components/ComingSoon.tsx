@@ -39,7 +39,7 @@ export default function ComingSoon() {
 
       <div style={{ display: "flex", gap: 14, marginTop: 6 }}>
         <a
-          href="https://x.com/MillionSolHP"
+          href="https://x.com/MillionSolHome"
           target="_blank"
           rel="noopener noreferrer"
           style={{
@@ -51,7 +51,7 @@ export default function ComingSoon() {
             fontSize: 15,
           }}
         >
-          𝕏 Follow @MillionSolHP
+          𝕏 Follow @MillionSolHome
         </a>
         <a
           href="/docs"
