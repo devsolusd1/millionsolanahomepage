@@ -852,6 +852,25 @@ export default function PixelCanvas() {
           1 PX = {TOKENS_PER_PIXEL} $PIXEL
         </span>
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "6px 10px",
+              borderRadius: 8,
+              border: "1px solid #e3e3e8",
+              background: "#fff",
+              fontFamily: "var(--font-geist-mono), monospace",
+              fontSize: 12,
+              color: "#666",
+            }}
+          >
+            <span style={{ fontSize: 9, letterSpacing: 1, color: "#2B4DFF", fontWeight: 700 }}>
+              CA
+            </span>
+            coming soon
+          </span>
           <WalletMultiButton />
         </div>
       </header>
