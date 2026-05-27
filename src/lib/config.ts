@@ -29,12 +29,13 @@ export const MAX_NAME_LENGTH = 40;
 // SPL Memo program — used to embed {link, region} in the burn tx.
 export const MEMO_PROGRAM_ID = "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr";
 
-// SPL token mint address (set after running scripts/create-token.ts).
-export const TOKEN_MINT = process.env.NEXT_PUBLIC_TOKEN_MINT ?? "";
+// SPL token mint address. Defaults to the live $PIXEL mint; overridable via env.
+export const TOKEN_MINT =
+  process.env.NEXT_PUBLIC_TOKEN_MINT ??
+  "cUbwihy5snkLwyWM7UPJd5CfMe476USqkcQRuMPiXEL";
 
-// Token decimals — MUST match the actual mint. Set NEXT_PUBLIC_TOKEN_DECIMALS
-// to the token's decimals (0 if you minted with 0 decimals).
-export const TOKEN_DECIMALS = Number(process.env.NEXT_PUBLIC_TOKEN_DECIMALS ?? 0);
+// Token decimals — MUST match the mint (the live $PIXEL token has 6).
+export const TOKEN_DECIMALS = Number(process.env.NEXT_PUBLIC_TOKEN_DECIMALS ?? 6);
 
 // Base units (smallest unit) that `pixels` cost, accounting for decimals.
 // E.g. 1 pixel = 10 whole tokens = 10 * 10^decimals base units.
