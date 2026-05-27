@@ -29,6 +29,9 @@ export const MAX_NAME_LENGTH = 40;
 // SPL Memo program — used to embed {link, region} in the burn tx.
 export const MEMO_PROGRAM_ID = "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr";
 
+// The $PIXEL mint is an SPL Token-2022 token, so all token ops use this program.
+export const TOKEN_PROGRAM = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb";
+
 // SPL token mint address. Defaults to the live $PIXEL mint; overridable via env.
 export const TOKEN_MINT =
   process.env.NEXT_PUBLIC_TOKEN_MINT ??

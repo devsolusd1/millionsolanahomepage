@@ -12,6 +12,7 @@ import {
   TOKEN_MINT,
   TOKEN_DECIMALS,
   MEMO_PROGRAM_ID,
+  TOKEN_PROGRAM,
   pixelCostBaseUnits,
 } from "./config";
 
@@ -42,12 +43,21 @@ export async function burnForPixels(
 ): Promise<string> {
   if (!TOKEN_MINT) throw new Error("Token mint is not configured.");
   const mint = new PublicKey(TOKEN_MINT);
+  const tokenProgram = new PublicKey(TOKEN_PROGRAM);
   const amount = pixelCostBaseUnits(pixelCount);
 
-  const ata = await getAssociatedTokenAddress(mint, owner);
+  const ata = await getAssociatedTokenAddress(mint, owner, false, tokenProgram);
 
   const tx = new Transaction().add(
-    createBurnCheckedInstruction(ata, mint, owner, amount, TOKEN_DECIMALS),
+    createBurnCheckedInstruction(
+      ata,
+      mint,
+      owner,
+      amount,
+      TOKEN_DECIMALS,
+      [],
+      tokenProgram,
+    ),
     memoInstruction(memo),
   );
   tx.feePayer = owner;

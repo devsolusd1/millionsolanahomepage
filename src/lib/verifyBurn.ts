@@ -4,7 +4,7 @@ import {
 } from "@solana/web3.js";
 import bs58 from "bs58";
 import { getConnection } from "./solana";
-import { TOKEN_MINT, MEMO_PROGRAM_ID } from "./config";
+import { TOKEN_MINT, MEMO_PROGRAM_ID, TOKEN_PROGRAM } from "./config";
 
 const SPL_TOKEN_PROGRAM = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
 
@@ -71,8 +71,13 @@ export async function verifyBurn(signature: string): Promise<VerifiedBurn> {
 
   for (const ix of instructions) {
     if (!isParsed(ix)) continue;
-    if (ix.program !== "spl-token" && ix.programId.toBase58() !== SPL_TOKEN_PROGRAM)
-      continue;
+    const pid = ix.programId.toBase58();
+    const isTokenIx =
+      ix.program === "spl-token" ||
+      ix.program === "spl-token-2022" ||
+      pid === SPL_TOKEN_PROGRAM ||
+      pid === TOKEN_PROGRAM;
+    if (!isTokenIx) continue;
 
     const type = ix.parsed?.type;
     if (type !== "burn" && type !== "burnChecked") continue;
